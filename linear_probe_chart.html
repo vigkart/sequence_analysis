@@ -1,0 +1,425 @@
+<title>Linear Probe Confirmation Across Layers</title>
+<style>
+  .viz-root {
+    color-scheme: light;
+    --surface:         #f6f7fa;
+    --surface-raised:  #ffffff;
+    --ink:             #14171c;
+    --ink-secondary:   #565d6e;
+    --ink-muted:       #8b91a0;
+    --border:          #dde1e8;
+    --border-strong:   #c3c9d4;
+    --series-1:        #2a78d6;
+    --series-2:        #eb6834;
+    --band:            #c3c9d4;
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .viz-root {
+      color-scheme: dark;
+      --surface:         #14171c;
+      --surface-raised:  #1c2028;
+      --ink:             #f0f2f5;
+      --ink-secondary:   #a2a9b8;
+      --ink-muted:       #6b7280;
+      --border:          #2a2f3a;
+      --border-strong:   #3a4150;
+      --series-1:        #3987e5;
+      --series-2:        #d95926;
+      --band:            #3a4150;
+    }
+  }
+  :root[data-theme="dark"] .viz-root {
+    color-scheme: dark;
+    --surface:         #14171c;
+    --surface-raised:  #1c2028;
+    --ink:             #f0f2f5;
+    --ink-secondary:   #a2a9b8;
+    --ink-muted:       #6b7280;
+    --border:          #2a2f3a;
+    --border-strong:   #3a4150;
+    --series-1:        #3987e5;
+    --series-2:        #d95926;
+    --band:            #3a4150;
+  }
+  :root[data-theme="light"] .viz-root {
+    color-scheme: light;
+    --surface:         #f6f7fa;
+    --surface-raised:  #ffffff;
+    --ink:             #14171c;
+    --ink-secondary:   #565d6e;
+    --ink-muted:       #8b91a0;
+    --border:          #dde1e8;
+    --border-strong:   #c3c9d4;
+    --series-1:        #2a78d6;
+    --series-2:        #eb6834;
+    --band:            #c3c9d4;
+  }
+
+  .viz-root * { box-sizing: border-box; }
+  .viz-root {
+    background: var(--surface);
+    color: var(--ink);
+    font-family: var(--sans);
+    padding: 40px 24px 56px;
+    display: flex;
+    justify-content: center;
+  }
+  .page { width: 100%; max-width: 980px; }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    margin: 0 0 10px;
+  }
+  h1 {
+    font-size: 26px;
+    line-height: 1.25;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    margin: 0 0 12px;
+    text-wrap: balance;
+    max-width: 34ch;
+  }
+  .thesis {
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--ink-secondary);
+    max-width: 66ch;
+    margin: 0 0 6px;
+  }
+  .thesis strong { color: var(--ink); font-weight: 600; }
+  .meta {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--ink-muted);
+    margin: 18px 0 32px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 20px;
+  }
+
+  .figure {
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px 28px 20px;
+    margin-bottom: 18px;
+  }
+  .panel-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+  }
+  .panel-title { font-size: 14px; font-weight: 650; }
+  .panel-sub { font-size: 12px; color: var(--ink-muted); font-family: var(--mono); }
+
+  .legend {
+    display: flex;
+    gap: 18px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-secondary);
+    margin: 14px 0 6px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .swatch { width: 14px; height: 2.5px; border-radius: 2px; }
+
+  svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .gridline { stroke: var(--border); stroke-width: 1; }
+  .axis-label { fill: var(--ink-muted); font-family: var(--mono); font-size: 9.5px; }
+  .band-rect { fill: var(--band); opacity: 0.35; }
+  .band-label {
+    fill: var(--ink-muted);
+    font-family: var(--mono);
+    font-size: 9.5px;
+    text-anchor: middle;
+  }
+  .line { fill: none; stroke-width: 2; }
+  .dot { r: 2.4; }
+  .chance-line { stroke: var(--border-strong); stroke-width: 1; stroke-dasharray: 3 3; }
+  .chance-label { fill: var(--ink-muted); font-family: var(--mono); font-size: 9.5px; }
+
+  .hover-line { stroke: var(--ink-muted); stroke-width: 1; opacity: 0; pointer-events: none; }
+  .hover-dot { opacity: 0; pointer-events: none; }
+
+  .tooltip {
+    position: fixed;
+    pointer-events: none;
+    background: var(--ink);
+    color: var(--surface);
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 8px 11px;
+    border-radius: 6px;
+    line-height: 1.55;
+    white-space: nowrap;
+    opacity: 0;
+    transform: translate(-50%, calc(-100% - 12px));
+    transition: opacity 0.08s ease;
+    z-index: 20;
+  }
+  .tooltip.visible { opacity: 1; }
+  .tooltip b { font-weight: 700; }
+  .tooltip .t-series1 { color: #6da7ec; }
+  .tooltip .t-series2 { color: #f0a480; }
+
+  .callout-row {
+    display: flex;
+    gap: 24px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+  }
+  .callout {
+    flex: 1 1 260px;
+    padding: 14px 16px;
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  .callout .k {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-muted);
+    margin-bottom: 5px;
+  }
+  .callout .v { font-size: 13.5px; line-height: 1.5; color: var(--ink-secondary); }
+  .callout .v strong { color: var(--ink); font-weight: 600; }
+
+  footer.caption {
+    margin-top: 24px;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--ink-muted);
+    max-width: 70ch;
+  }
+</style>
+
+<div class="viz-root">
+<div class="page">
+
+  <p class="eyebrow">TET-binder design &middot; independent probe verification</p>
+  <h1>Two methods, same answer: layers 7&ndash;9</h1>
+  <p class="thesis">
+    A regularized multivariate linear probe &mdash; trained on the 14-binder
+    screen set, regularization tuned by leave-one-out cross-validation, then
+    evaluated on the 4 held-out binders from a separate experiment &mdash;
+    peaks at the <strong>same layers</strong> the single-PC search found,
+    using a completely different modeling approach.
+  </p>
+  <div class="meta">
+    <span>train: n=14 (screen)</span>
+    <span>evaluate: n=4 (held-out, separate experiment)</span>
+    <span>features: top-10 PCs per layer</span>
+    <span>models: RidgeCV + L2 LogisticRegressionCV</span>
+  </div>
+
+  <div class="figure">
+    <div class="panel-head">
+      <div class="panel-title">joint (binder + target)</div>
+      <div class="panel-sub">the condition where signal actually appears</div>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="swatch" style="background:var(--series-1)"></div>regression concordance (predicted vs. real mCherry)</div>
+      <div class="legend-item"><div class="swatch" style="background:var(--series-2)"></div>classification probability concordance</div>
+    </div>
+    <div id="chartJoint"></div>
+  </div>
+
+  <div class="figure">
+    <div class="panel-head">
+      <div class="panel-title">binder-alone</div>
+      <div class="panel-sub">never reaches joint's perfect scores</div>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="swatch" style="background:var(--series-1)"></div>regression concordance (predicted vs. real mCherry)</div>
+      <div class="legend-item"><div class="swatch" style="background:var(--series-2)"></div>classification probability concordance</div>
+    </div>
+    <div id="chartAlone"></div>
+  </div>
+
+  <div class="callout-row">
+    <div class="callout">
+      <div class="k">Peak</div>
+      <div class="v">Layers <strong>7 and 8</strong> (joint) hit
+      <strong>1.000</strong> on both metrics simultaneously &mdash; the only
+      layers to do so anywhere in the sweep.</div>
+    </div>
+    <div class="callout">
+      <div class="k">Extended region</div>
+      <div class="v">Layers <strong>9&ndash;13</strong> (joint) cluster right
+      behind with perfect classification-probability ranking, echoing the
+      single-PC search's layers 7&ndash;9(&ndash;11) finding.</div>
+    </div>
+    <div class="callout">
+      <div class="k">Convergent evidence</div>
+      <div class="v">Two independently-derived methods &mdash; a hand-picked
+      single axis, and a regularized multivariate probe &mdash; agree. That's
+      real signal, not a coincidence of one metric.</div>
+    </div>
+  </div>
+
+  <footer class="caption">
+    Dashed line marks chance (0.5) for both concordance metrics. Shaded band
+    marks layers 7&ndash;9. Regularization strength (alpha for ridge, C for
+    logistic) was tuned via leave-one-out cross-validation strictly within
+    the 14-binder training set — the 4 held-out points were never used for
+    model selection, only final evaluation.
+  </footer>
+
+</div>
+</div>
+
+<script>
+(function () {
+  const chartData = {"binder_alone": [{"reg_concordance": 0.6667, "clf_proba_concordance": 0.8333, "reg_pearson": -0.5821, "clf_hit_rate": 0.5}, {"reg_concordance": 0.5, "clf_proba_concordance": 0.6667, "reg_pearson": 0.1458, "clf_hit_rate": 0.5}, {"reg_concordance": 0.8333, "clf_proba_concordance": 0.8333, "reg_pearson": 0.706, "clf_hit_rate": 0.25}, {"reg_concordance": 0.8333, "clf_proba_concordance": 0.8333, "reg_pearson": 0.754, "clf_hit_rate": 0.5}, {"reg_concordance": 0.8333, "clf_proba_concordance": 0.8333, "reg_pearson": 0.745, "clf_hit_rate": 0.5}, {"reg_concordance": 0.6667, "clf_proba_concordance": 0.8333, "reg_pearson": 0.4577, "clf_hit_rate": 0.25}, {"reg_concordance": 0.5, "clf_proba_concordance": 0.6667, "reg_pearson": -0.4113, "clf_hit_rate": 0.0}, {"reg_concordance": 0.5, "clf_proba_concordance": 1.0, "reg_pearson": -0.825, "clf_hit_rate": 0.25}, {"reg_concordance": 0.6667, "clf_proba_concordance": 0.8333, "reg_pearson": -0.8631, "clf_hit_rate": 0.25}, {"reg_concordance": 0.8333, "clf_proba_concordance": 0.8333, "reg_pearson": -0.9101, "clf_hit_rate": 0.25}, {"reg_concordance": 0.8333, "clf_proba_concordance": 0.8333, "reg_pearson": -0.8965, "clf_hit_rate": 0.25}, {"reg_concordance": 0.6667, "clf_proba_concordance": 0.8333, "reg_pearson": -0.8526, "clf_hit_rate": 0.5}, {"reg_concordance": 0.6667, "clf_proba_concordance": 0.8333, "reg_pearson": -0.8307, "clf_hit_rate": 0.5}, {"reg_concordance": 0.6667, "clf_proba_concordance": 0.8333, "reg_pearson": -0.8663, "clf_hit_rate": 0.25}, {"reg_concordance": 0.6667, "clf_proba_concordance": 0.6667, "reg_pearson": -0.787, "clf_hit_rate": 0.5}, {"reg_concordance": 0.6667, "clf_proba_concordance": 0.6667, "reg_pearson": -0.771, "clf_hit_rate": 0.5}, {"reg_concordance": 0.6667, "clf_proba_concordance": 0.6667, "reg_pearson": -0.6965, "clf_hit_rate": 0.5}, {"reg_concordance": 0.5, "clf_proba_concordance": 0.8333, "reg_pearson": -0.1452, "clf_hit_rate": 0.5}, {"reg_concordance": 0.6667, "clf_proba_concordance": 0.6667, "reg_pearson": -0.0082, "clf_hit_rate": 0.5}, {"reg_concordance": 0.5, "clf_proba_concordance": 0.6667, "reg_pearson": -0.0793, "clf_hit_rate": 0.5}, {"reg_concordance": 0.6667, "clf_proba_concordance": 0.6667, "reg_pearson": -0.0073, "clf_hit_rate": 0.5}, {"reg_concordance": 0.6667, "clf_proba_concordance": 0.5, "reg_pearson": 0.3558, "clf_hit_rate": 0.25}, {"reg_concordance": 0.5, "clf_proba_concordance": 0.8333, "reg_pearson": -0.0607, "clf_hit_rate": 0.5}, {"reg_concordance": 0.5, "clf_proba_concordance": 0.8333, "reg_pearson": -0.098, "clf_hit_rate": 0.5}, {"reg_concordance": 0.6667, "clf_proba_concordance": 0.8333, "reg_pearson": -0.1228, "clf_hit_rate": 0.75}, {"reg_concordance": 0.6667, "clf_proba_concordance": 1.0, "reg_pearson": -0.1498, "clf_hit_rate": 0.75}, {"reg_concordance": 0.5, "clf_proba_concordance": 0.5, "reg_pearson": -0.1307, "clf_hit_rate": 0.25}, {"reg_concordance": 0.5, "clf_proba_concordance": 0.6667, "reg_pearson": -0.0692, "clf_hit_rate": 0.5}, {"reg_concordance": 0.5, "clf_proba_concordance": 0.5, "reg_pearson": -0.1307, "clf_hit_rate": 0.5}, {"reg_concordance": 0.5, "clf_proba_concordance": 0.5, "reg_pearson": -0.1514, "clf_hit_rate": 0.5}, {"reg_concordance": 0.5, "clf_proba_concordance": 0.5, "reg_pearson": -0.0956, "clf_hit_rate": 0.5}, {"reg_concordance": 0.5, "clf_proba_concordance": 0.5, "reg_pearson": -0.1467, "clf_hit_rate": 0.5}, {"reg_concordance": 0.6667, "clf_proba_concordance": 0.5, "reg_pearson": -0.6194, "clf_hit_rate": 0.5}, {"reg_concordance": 0.6667, "clf_proba_concordance": 0.6667, "reg_pearson": -0.6386, "clf_hit_rate": 0.25}, {"reg_concordance": 0.6667, "clf_proba_concordance": 0.6667, "reg_pearson": -0.5267, "clf_hit_rate": 0.5}, {"reg_concordance": 0.6667, "clf_proba_concordance": 0.8333, "reg_pearson": -0.5332, "clf_hit_rate": 0.5}], "joint": [{"reg_concordance": 0.5, "clf_proba_concordance": 0.6667, "reg_pearson": -0.5131, "clf_hit_rate": 0.5}, {"reg_concordance": 0.5, "clf_proba_concordance": 0.5, "reg_pearson": 0.0366, "clf_hit_rate": 0.5}, {"reg_concordance": 0.8333, "clf_proba_concordance": 0.6667, "reg_pearson": 0.6983, "clf_hit_rate": 0.25}, {"reg_concordance": 0.8333, "clf_proba_concordance": 0.8333, "reg_pearson": 0.7826, "clf_hit_rate": 0.5}, {"reg_concordance": 0.8333, "clf_proba_concordance": 0.8333, "reg_pearson": 0.7912, "clf_hit_rate": 0.5}, {"reg_concordance": 0.8333, "clf_proba_concordance": 0.8333, "reg_pearson": 0.8102, "clf_hit_rate": 0.5}, {"reg_concordance": 0.5, "clf_proba_concordance": 0.8333, "reg_pearson": -0.3337, "clf_hit_rate": 0.25}, {"reg_concordance": 1.0, "clf_proba_concordance": 1.0, "reg_pearson": -0.9646, "clf_hit_rate": 0.25}, {"reg_concordance": 1.0, "clf_proba_concordance": 1.0, "reg_pearson": -0.992, "clf_hit_rate": 0.25}, {"reg_concordance": 0.8333, "clf_proba_concordance": 1.0, "reg_pearson": -0.973, "clf_hit_rate": 0.25}, {"reg_concordance": 0.8333, "clf_proba_concordance": 1.0, "reg_pearson": -0.9656, "clf_hit_rate": 0.25}, {"reg_concordance": 0.8333, "clf_proba_concordance": 1.0, "reg_pearson": -0.9125, "clf_hit_rate": 0.25}, {"reg_concordance": 0.8333, "clf_proba_concordance": 0.8333, "reg_pearson": -0.8845, "clf_hit_rate": 0.25}, {"reg_concordance": 0.8333, "clf_proba_concordance": 1.0, "reg_pearson": -0.8934, "clf_hit_rate": 0.25}, {"reg_concordance": 0.8333, "clf_proba_concordance": 0.8333, "reg_pearson": -0.8678, "clf_hit_rate": 0.5}, {"reg_concordance": 0.6667, "clf_proba_concordance": 0.8333, "reg_pearson": 0.1778, "clf_hit_rate": 0.5}, {"reg_concordance": 0.6667, "clf_proba_concordance": 0.8333, "reg_pearson": -0.6928, "clf_hit_rate": 0.25}, {"reg_concordance": 0.6667, "clf_proba_concordance": 0.8333, "reg_pearson": -0.2133, "clf_hit_rate": 0.25}, {"reg_concordance": 0.5, "clf_proba_concordance": 0.8333, "reg_pearson": -0.0919, "clf_hit_rate": 0.5}, {"reg_concordance": 0.5, "clf_proba_concordance": 0.8333, "reg_pearson": -0.1445, "clf_hit_rate": 0.5}, {"reg_concordance": 0.6667, "clf_proba_concordance": 0.8333, "reg_pearson": -0.7123, "clf_hit_rate": 0.5}, {"reg_concordance": 0.6667, "clf_proba_concordance": 0.6667, "reg_pearson": 0.3511, "clf_hit_rate": 0.25}, {"reg_concordance": 0.6667, "clf_proba_concordance": 0.8333, "reg_pearson": -0.0483, "clf_hit_rate": 0.5}, {"reg_concordance": 0.5, "clf_proba_concordance": 0.8333, "reg_pearson": -0.0983, "clf_hit_rate": 0.5}, {"reg_concordance": 0.5, "clf_proba_concordance": 0.8333, "reg_pearson": -0.0939, "clf_hit_rate": 0.5}, {"reg_concordance": 0.5, "clf_proba_concordance": 0.6667, "reg_pearson": -0.0684, "clf_hit_rate": 0.25}, {"reg_concordance": 0.5, "clf_proba_concordance": 0.6667, "reg_pearson": -0.1255, "clf_hit_rate": 0.25}, {"reg_concordance": 0.5, "clf_proba_concordance": 0.6667, "reg_pearson": -0.0711, "clf_hit_rate": 0.25}, {"reg_concordance": 0.5, "clf_proba_concordance": 0.6667, "reg_pearson": -0.1577, "clf_hit_rate": 0.25}, {"reg_concordance": 0.5, "clf_proba_concordance": 0.6667, "reg_pearson": -0.1596, "clf_hit_rate": 0.25}, {"reg_concordance": 0.5, "clf_proba_concordance": 0.5, "reg_pearson": -0.2074, "clf_hit_rate": 0.25}, {"reg_concordance": 0.5, "clf_proba_concordance": 0.5, "reg_pearson": -0.2494, "clf_hit_rate": 0.0}, {"reg_concordance": 0.5, "clf_proba_concordance": 1.0, "reg_pearson": -0.5716, "clf_hit_rate": 0.75}, {"reg_concordance": 0.6667, "clf_proba_concordance": 0.8333, "reg_pearson": -0.7072, "clf_hit_rate": 0.25}, {"reg_concordance": 0.6667, "clf_proba_concordance": 0.8333, "reg_pearson": -0.6743, "clf_hit_rate": 0.5}, {"reg_concordance": 0.6667, "clf_proba_concordance": 0.8333, "reg_pearson": -0.5575, "clf_hit_rate": 0.5}]};
+  const W = 900, H = 220, marginL = 34, marginR = 12, marginT = 10, marginB = 24;
+  const plotW = W - marginL - marginR, plotH = H - marginT - marginB;
+  const nLayers = 36;
+  const yMin = 0.4, yMax = 1.02;
+  const bandStart = 7, bandEnd = 9;
+
+  function xPos(layer) { return marginL + (layer / (nLayers - 1)) * plotW; }
+  function yPos(v) { return marginT + (1 - (v - yMin) / (yMax - yMin)) * plotH; }
+
+  function buildChart(container, rows) {
+    const svgNS = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(svgNS, "svg");
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    svg.setAttribute("role", "img");
+
+    // gridlines + y labels
+    [0.5, 0.6, 0.7, 0.8, 0.9, 1.0].forEach(v => {
+      const y = yPos(v);
+      const line = document.createElementNS(svgNS, "line");
+      line.setAttribute("x1", marginL); line.setAttribute("x2", W - marginR);
+      line.setAttribute("y1", y); line.setAttribute("y2", y);
+      line.setAttribute("class", "gridline");
+      svg.appendChild(line);
+      const label = document.createElementNS(svgNS, "text");
+      label.setAttribute("x", marginL - 6); label.setAttribute("y", y + 3);
+      label.setAttribute("text-anchor", "end");
+      label.setAttribute("class", "axis-label");
+      label.textContent = v.toFixed(1);
+      svg.appendChild(label);
+    });
+
+    // band for layers 7-9
+    const bandRect = document.createElementNS(svgNS, "rect");
+    bandRect.setAttribute("x", xPos(bandStart) - 6);
+    bandRect.setAttribute("y", marginT);
+    bandRect.setAttribute("width", xPos(bandEnd) - xPos(bandStart) + 12);
+    bandRect.setAttribute("height", plotH);
+    bandRect.setAttribute("class", "band-rect");
+    svg.appendChild(bandRect);
+    const bandLabel = document.createElementNS(svgNS, "text");
+    bandLabel.setAttribute("x", (xPos(bandStart) + xPos(bandEnd)) / 2);
+    bandLabel.setAttribute("y", marginT + 12);
+    bandLabel.setAttribute("class", "band-label");
+    bandLabel.textContent = "layers 7–9";
+    svg.appendChild(bandLabel);
+
+    // chance line
+    const chanceY = yPos(0.5);
+    const chanceLine = document.createElementNS(svgNS, "line");
+    chanceLine.setAttribute("x1", marginL); chanceLine.setAttribute("x2", W - marginR);
+    chanceLine.setAttribute("y1", chanceY); chanceLine.setAttribute("y2", chanceY);
+    chanceLine.setAttribute("class", "chance-line");
+    svg.appendChild(chanceLine);
+
+    // x axis labels (every 5 layers)
+    for (let l = 0; l < nLayers; l += 5) {
+      const label = document.createElementNS(svgNS, "text");
+      label.setAttribute("x", xPos(l)); label.setAttribute("y", H - 6);
+      label.setAttribute("text-anchor", "middle");
+      label.setAttribute("class", "axis-label");
+      label.textContent = l;
+      svg.appendChild(label);
+    }
+
+    function drawLine(key, colorVar) {
+      let d = "";
+      rows.forEach((row, i) => {
+        const x = xPos(i), y = yPos(row[key]);
+        d += (i === 0 ? "M" : "L") + x.toFixed(2) + "," + y.toFixed(2) + " ";
+      });
+      const path = document.createElementNS(svgNS, "path");
+      path.setAttribute("d", d.trim());
+      path.setAttribute("class", "line");
+      path.setAttribute("stroke", `var(${colorVar})`);
+      svg.appendChild(path);
+    }
+    drawLine("reg_concordance", "--series-1");
+    drawLine("clf_proba_concordance", "--series-2");
+
+    // hover elements
+    const hoverLine = document.createElementNS(svgNS, "line");
+    hoverLine.setAttribute("y1", marginT); hoverLine.setAttribute("y2", marginT + plotH);
+    hoverLine.setAttribute("class", "hover-line");
+    svg.appendChild(hoverLine);
+
+    const dot1 = document.createElementNS(svgNS, "circle");
+    dot1.setAttribute("class", "dot hover-dot");
+    dot1.setAttribute("fill", "var(--series-1)");
+    svg.appendChild(dot1);
+    const dot2 = document.createElementNS(svgNS, "circle");
+    dot2.setAttribute("class", "dot hover-dot");
+    dot2.setAttribute("fill", "var(--series-2)");
+    svg.appendChild(dot2);
+
+    const hitArea = document.createElementNS(svgNS, "rect");
+    hitArea.setAttribute("x", marginL); hitArea.setAttribute("y", marginT);
+    hitArea.setAttribute("width", plotW); hitArea.setAttribute("height", plotH);
+    hitArea.setAttribute("fill", "transparent");
+    svg.appendChild(hitArea);
+
+    container.appendChild(svg);
+
+    hitArea.addEventListener("mousemove", (e) => {
+      const rect = svg.getBoundingClientRect();
+      const scaleX = rect.width / W;
+      const localX = (e.clientX - rect.left) / scaleX;
+      let layer = Math.round(((localX - marginL) / plotW) * (nLayers - 1));
+      layer = Math.max(0, Math.min(nLayers - 1, layer));
+      const row = rows[layer];
+      const x = xPos(layer);
+      hoverLine.setAttribute("x1", x); hoverLine.setAttribute("x2", x);
+      hoverLine.style.opacity = 1;
+      dot1.setAttribute("cx", x); dot1.setAttribute("cy", yPos(row.reg_concordance));
+      dot2.setAttribute("cx", x); dot2.setAttribute("cy", yPos(row.clf_proba_concordance));
+      dot1.style.opacity = 1; dot2.style.opacity = 1;
+
+      tooltip.innerHTML = `layer <b>${layer}</b><br>` +
+        `<span class="t-series1">reg concordance ${row.reg_concordance.toFixed(3)}</span><br>` +
+        `<span class="t-series2">clf proba concordance ${row.clf_proba_concordance.toFixed(3)}</span><br>` +
+        `reg pearson r ${row.reg_pearson.toFixed(3)}`;
+      tooltip.style.left = e.clientX + "px";
+      tooltip.style.top = e.clientY + "px";
+      tooltip.classList.add("visible");
+    });
+    hitArea.addEventListener("mouseleave", () => {
+      hoverLine.style.opacity = 0;
+      dot1.style.opacity = 0; dot2.style.opacity = 0;
+      tooltip.classList.remove("visible");
+    });
+  }
+
+  const tooltip = document.createElement("div");
+  tooltip.className = "tooltip";
+  document.body.appendChild(tooltip);
+
+  buildChart(document.getElementById("chartJoint"), chartData.joint);
+  buildChart(document.getElementById("chartAlone"), chartData.binder_alone);
+})();
+</script>

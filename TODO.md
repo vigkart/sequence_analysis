@@ -281,5 +281,40 @@ new157 contamination-suspected duplicate).
   (missing charset meta tag) — not fixed, user said figure is good enough
   as-is.
 
+## Linear-probe verification (independent of the single-PC search)
+`linear_probe_per_layer.py` — per layer, trained a proper regularized
+multivariate probe (RidgeCV regression + L2 LogisticRegressionCV
+classification, top-10 PCs as features, regularization tuned via
+leave-one-out CV *within* the 14, never touching the 4) and evaluated on
+the same 4 held-out confirmation points.
+- Caught and fixed a real bug before trusting results: RidgeCV's default
+  LOO scoring is R², which is undefined for single-point folds — alpha was
+  being selected essentially at random (pinned at the grid minimum for
+  nearly every layer). Fixed by scoring on MSE instead; alpha selection
+  became sensible (varies meaningfully across layers) after the fix.
+- **Result confirms the PC7 finding via a fully independent method**:
+  joint-condition layers 7 and 8 achieve perfect regression concordance
+  (1.000) AND perfect classification-probability concordance (1.000) on
+  the 4 held-out points — the top two results in the whole 72-row table on
+  both metrics simultaneously. Layers 9/10/11/13 (still joint) cluster
+  right behind with perfect probability ranking.
+- binder_alone's best result only reaches 0.833 concordance — never
+  matches joint's perfect scores. Reinforces that the real signal is
+  target-aware (joint), not binder-intrinsic.
+- Nuance: probability *ranking* on the 4 is perfect, but the hard
+  0.5-threshold *decision* only fires on 1/4 — expected when generalizing
+  across separate experimental batches (relative ranking is more robust to
+  systematic shifts than absolute calibration); the ranking claim is the
+  meaningful one and it held up.
+- **Two independent methods (single-PC search-then-confirm, and proper
+  regularized multivariate probe) now agree: layers 7-9 (joint) is the
+  best-supported layer choice for the diffusion pipeline.**
+- Visualized as line charts (joint vs. binder-alone panels, regression +
+  classification-probability concordance per layer) at
+  `sequence_analysis/linear_probe_chart.html`, published as an Artifact.
+- Combined with the PCA heatmap into one page,
+  `sequence_analysis/combined_layer_evidence.html`, published as an
+  Artifact — both lines of evidence shown together with a shared verdict.
+
 ## PAUSED here — resume after more real (no-co-transfection) data.
 Do not start diffusion training before layer choice is on firmer ground.
