@@ -1,0 +1,13 @@
+# Python environment
+.venv/
+__pycache__/
+*.pyc
+
+# Large data outputs (regenerate locally — see README)
+stageA_mean_pooled/*.f32
+stageA_pca/
+boltzgen_conf_1_batch_generation-scores.csv
+boltzgen_conf_1_batch_generation-all-designs-metrics-passing.csv
+
+# OS
+.DS_Store
