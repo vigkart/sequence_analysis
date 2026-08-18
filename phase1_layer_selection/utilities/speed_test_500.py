@@ -1,5 +1,6 @@
 import csv
 import time
+from pathlib import Path
 
 import torch
 from esm.models.esmc import ESMC
@@ -7,7 +8,8 @@ from esm.sdk.api import ESMProtein, LogitsConfig
 from esm.tokenization import get_esmc_model_tokenizers
 from esm.utils.constants.esm3 import data_root
 
-CSV_PATH = "boltzgen_conf_1_batch_generation-scores.csv"
+ROOT = Path(__file__).resolve().parent.parent.parent
+CSV_PATH = ROOT / "data" / "boltzgen_conf_1_batch_generation-scores.csv"
 SEQ_COL = "designed_sequence - boltzgen"
 N = 500
 FULL_RUN_SIZE = 80_000

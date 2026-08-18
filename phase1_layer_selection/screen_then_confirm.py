@@ -13,8 +13,8 @@ HIGH_THRESHOLD = 4.0
 HIGH_WEIGHT = 3.0
 
 ROOT = Path(__file__).resolve().parent.parent
-IN_DIR = ROOT / "phase1_mean_pooled"
-PCA_DIR = ROOT / "phase1_pca"
+IN_DIR = ROOT / "data" / "phase1_mean_pooled"
+PCA_DIR = ROOT / "data" / "phase1_pca"
 
 with open(ROOT / "data" / "rank_lookup_row_indices.json") as f:
     rank_rows = json.load(f)

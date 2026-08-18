@@ -10,7 +10,7 @@ from esm.tokenization import get_esmc_model_tokenizers
 from esm.utils.constants.esm3 import data_root
 
 ROOT = Path(__file__).resolve().parent.parent
-CSV_PATH = ROOT / "boltzgen_conf_1_batch_generation-scores.csv"
+CSV_PATH = ROOT / "data" / "boltzgen_conf_1_batch_generation-scores.csv"
 TARGET_SEQ = "DATHTQIEEDVATQLTQLASIIKINYIKPE"
 LAYERS = [7, 8, 9]  # 0-indexed, matches every prior analysis in this project
 D_MODEL = 1152

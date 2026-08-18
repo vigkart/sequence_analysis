@@ -11,8 +11,8 @@ N_COMPONENTS = 50
 OUTLIER_RATIO = 20.0  # dim considered outlier if var > OUTLIER_RATIO * median layer var
 
 ROOT = Path(__file__).resolve().parent.parent
-IN_DIR = ROOT / "phase1_mean_pooled"
-OUT_DIR = ROOT / "phase1_pca"
+IN_DIR = ROOT / "data" / "phase1_mean_pooled"
+OUT_DIR = ROOT / "data" / "phase1_pca"
 OUT_DIR.mkdir(exist_ok=True)
 
 CONDITIONS = {

@@ -4,10 +4,10 @@ __pycache__/
 *.pyc
 
 # Large data outputs (regenerate locally — see README)
-phase1_mean_pooled/*.f32
-phase1_pca/
-boltzgen_conf_1_batch_generation-scores.csv
-boltzgen_conf_1_batch_generation-all-designs-metrics-passing.csv
+data/phase1_mean_pooled/*.f32
+data/phase1_pca/
+data/boltzgen_conf_1_batch_generation-scores.csv
+data/boltzgen_conf_1_batch_generation-all-designs-metrics-passing.csv
 
 # OS
 .DS_Store

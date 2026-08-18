@@ -4,9 +4,9 @@ from pathlib import Path
 import numpy as np
 
 ROOT = Path(__file__).resolve().parent.parent
-CSV_PATH = ROOT / "boltzgen_conf_1_batch_generation-scores.csv"
-IDS_PATH = ROOT / "phase1_mean_pooled" / "ids.csv"
-PCA_DIR = ROOT / "phase1_pca"
+CSV_PATH = ROOT / "data" / "boltzgen_conf_1_batch_generation-scores.csv"
+IDS_PATH = ROOT / "data" / "phase1_mean_pooled" / "ids.csv"
+PCA_DIR = ROOT / "data" / "phase1_pca"
 N_PCS_TO_CHECK = 20
 
 LABEL_COLS = {

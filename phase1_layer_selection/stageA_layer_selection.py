@@ -10,13 +10,13 @@ from esm.tokenization import get_esmc_model_tokenizers
 from esm.utils.constants.esm3 import data_root
 
 ROOT = Path(__file__).resolve().parent.parent
-CSV_PATH = ROOT / "boltzgen_conf_1_batch_generation-scores.csv"
+CSV_PATH = ROOT / "data" / "boltzgen_conf_1_batch_generation-scores.csv"
 SEQ_COL = "designed_sequence - boltzgen"
 ID_COL = "id - boltzgen"
 JOBNAME_COL = "Job Name"
 TARGET_SEQ = "DATHTQIEEDVATQLTQLASIIKINYIKPE"
 
-OUT_DIR = ROOT / "phase1_mean_pooled"
+OUT_DIR = ROOT / "data" / "phase1_mean_pooled"
 OUT_DIR.mkdir(exist_ok=True)
 
 N_LAYERS = 36

@@ -64,7 +64,7 @@ RoPE-distance artifacts? Verified by reading ESMC's source
   `esmc_600M.py` by loading `data/weights/esmc_600m_2024_12_v0.pth`
   directly and calling `model.load_state_dict(...)`.
 - Sequences source (full 80k, unfiltered): `designed_sequence - boltzgen`
-  column in `boltzgen_conf_1_batch_generation-scores.csv` (80,000 rows).
+  column in `data/boltzgen_conf_1_batch_generation-scores.csv` (80,000 rows).
   Note: `boltzgen_conf_1_batch_generation-all-designs-metrics-passing.csv`
   in this same folder is a filtered subset (~47k) — not the right file
   for embedding all designs.
@@ -80,7 +80,7 @@ RoPE-distance artifacts? Verified by reading ESMC's source
 ## Status
 - [x] Local ESMC-600M environment working (GFP test passes)
 - [x] Speed benchmark on 500 sequences → estimate full-run time
-      Result (`speed_test_500.py`, MPS, float32, no batching, single-sequence
+      Result (`phase1_layer_selection/utilities/speed_test_500.py`, MPS, float32, no batching, single-sequence
       loop): 17.2 seq/s (58ms/seq avg) on binder-only sequences (100-148 aa).
       Projects to ~77.5 min for all 80k binder-alone embeddings.
       Caveat: condition 2 (binder+target joint) will cost more than 2x this,
@@ -90,13 +90,13 @@ RoPE-distance artifacts? Verified by reading ESMC's source
 - [ ] Decide batching strategy based on benchmark result
 - [x] Stage A embeddings: mean-pooled per-layer, binder-alone AND
       binder+target-joint, all 80k designs (`stageA_layer_selection.py`,
-      output in `phase1_mean_pooled/`). Took 174.3 min at steady 7.65 seq/s
+      output in `data/phase1_mean_pooled/`). Took 174.3 min at steady 7.65 seq/s
       (both conditions combined per design). 36 layers (not 37 — verified
       empirically, docstring's n_layers+1 doesn't apply to this local
       class), mean excludes <cls>/<eos>. 13.27GB per condition.
 - [x] PCA across all 36 layers, both conditions, 3 variants (correlation;
       covariance all-dims; covariance outliers-excluded) — `run_pca_all_layers.py`,
-      output in `phase1_pca/{condition}/layer_NN/`. Top 50 PCs + explained
+      output in `data/phase1_pca/{condition}/layer_NN/`. Top 50 PCs + explained
       variance ratio saved per (layer, condition, variant).
       Findings: outlier dims (500/920/1091/269/522/... recurring set) are
       frequently highly correlated with each other (e.g. (920,1091) ~-0.9
@@ -168,22 +168,22 @@ still needed if we want to include the positive control.
 - Binder1 = design_spec_154, row 30263 (already in 80k dataset)
 - Binder2 = design_spec_130, row 2007 (already in 80k dataset)
 - Binder3 = design_spec_144, row 16250 (already in 80k dataset)
-- Binder3-4 = not in dataset, embedded fresh (`embed_binder3_4.py`,
-  output `phase1_mean_pooled/binder3_4_{binder_alone,joint}.npy`)
+- Binder3-4 = not in dataset, embedded fresh (`phase1_layer_selection/utilities/embed_binder3_4.py`,
+  output `data/phase1_mean_pooled/binder3_4_{binder_alone,joint}.npy`)
 
 ## Real-data ranking search (n=4, exploratory only — see caveats)
-`project_real_binders.py` projected the 4 real binders onto all 36 layers
+`phase1_layer_selection/utilities/project_real_binders.py` projected the 4 real binders onto all 36 layers
 × 3 PCA variants × 20 PCs (4,320 candidates) and checked ranking
 concordance against the true mCherry order. Raw |r| values are
 meaningless at n=4 (trivially hits 0.99+ from noise) — the useful metric
 is exact-ranking concordance (6/6 pairs correct). 267/4,320 candidates
 matched perfectly (chance expectation ~180) — a real but modest excess,
 and hits were scattered across all depths with no layer clustering.
-`layer_hit_counts.py` found layer 3 and layer 7 tied for the most
+`phase1_layer_selection/utilities/layer_hit_counts.py` found layer 3 and layer 7 tied for the most
 per-layer hits (27 each) — looked significant under a naive binomial
 null (z=5.61) but that null assumes independent candidates, which is
 false here (dims are highly correlated with each other, established
-earlier). The correct test — `permutation_test.py`, exact permutation
+earlier). The correct test — `phase1_layer_selection/utilities/permutation_test.py`, exact permutation
 over all 4!=24 label assignments — put the TRUE assignment at rank 3 of
 24 (p=3/24=0.125, not significant); two biologically meaningless
 relabelings scored higher than the real one. **Conclusion: n=4 cannot
@@ -388,9 +388,9 @@ full layout. All scripts now resolve data paths relative to the repo root
 via `Path(__file__).resolve().parent.parent` rather than assuming a
 particular working directory, so they run correctly regardless of where
 they're invoked from — verified by actually running
-`phase1_layer_selection/check_dim_variance.py` from inside its new folder and
+`phase1_layer_selection/utilities/check_dim_variance.py` from inside its new folder and
 confirming output matches the original pre-move run exactly. Root-level
-data (`phase1_mean_pooled/`, `phase1_pca/`, the scores CSV) stayed at the
+data (`data/phase1_mean_pooled/`, `data/phase1_pca/`, the scores CSV) now live at
 repo root rather than moving — no benefit to relocating multi-GB gitignored
 directories, only the code moved.
 
