@@ -30,24 +30,29 @@ Every script resolves its data paths relative to the repo root (via
 directory — so they can be run from anywhere, e.g. either of these work
 identically:
 ```bash
-python stage_a_pca/check_dim_variance.py
-cd stage_a_pca && python check_dim_variance.py
+python phase1_layer_selection/check_dim_variance.py
+cd phase1_layer_selection && python check_dim_variance.py
 ```
 
 ## Directory structure
 
-- **`stage_a_pca/`** — Stage A: embed all 80k designs (mean-pooled, both
-  conditions), fit PCA per layer, correlate against BoltzGen's computational
-  metrics, and the length-deconfounding check that debunked the early
-  "layer 14" lead.
-- **`real_data_validation/`** — validation against real wet-lab mCherry
-  activity across two experiments (n=4 then n=19 real binders). This is
-  where the layer 7–9 / PC7 finding was established and independently
-  confirmed via a regularized linear probe.
-- **`phase2_residue_embeddings/`** — Phase 2: residue-level (not
-  mean-pooled) embeddings at layers 7–9 only, joint condition, saved to an
-  external drive. Data foundation for the SAE and diffusion-head work
-  logged in `TODO.md`.
+Organized by project phase, not by date or file type:
+
+- **`phase1_layer_selection/`** — everything about finding and validating
+  which ESMC layer encodes binding-relevant information: mean-pooled
+  embedding of all 80k designs (both binder-alone and joint conditions),
+  PCA per layer, correlation against BoltzGen's computational metrics, the
+  length-deconfounding check that debunked the early "layer 14" lead, and
+  validation against real wet-lab mCherry activity across two experiments
+  (n=4 then n=19 real binders) — including the regularized linear probe
+  that independently confirmed the layer 7–9 / PC7 finding.
+- **`phase2_feature_extraction/`** — residue-level (not mean-pooled)
+  embeddings at layers 7–9 only, joint condition, saved to an external
+  drive. The planned SAE feature-extraction work (see `TODO.md`) lands
+  here too once started.
+- **`phase3_binder_optimization/`** — not created yet. Future home for the
+  generative/diffusion work once it exists (see `TODO.md`'s "Future
+  direction 2").
 - **`figures/`** — published Artifact visualizations (HTML) and their
   companion data.
 - **`data/`** — small derived/lookup data: `rank_lookup_*.json` (resolves
@@ -56,7 +61,7 @@ cd stage_a_pca && python check_dim_variance.py
 - **`docs/`** — this file, `TODO.md`, `PI_presentation_summary.md`.
 - Root — `esmc_600M.py` (minimal sanity-test script) and
   `speed_test_500.py` (throughput benchmark) stay at the repo root since
-  they're one-off utilities rather than part of a specific stage.
+  they're one-off utilities rather than part of a specific phase.
 
 ## Data not included in this repo
 
@@ -81,43 +86,45 @@ on an external drive: `/Volumes/Extreme Pro/esmc_residue_embeddings/`.
    sanity test); also the reference for the `from_pretrained` checkpoint-path
    bug workaround.
 2. `speed_test_500.py` — throughput benchmark on 500 sequences.
-3. `stage_a_pca/stageA_layer_selection.py` — embeds all 80k designs, both
-   conditions, mean-pooled per layer. Produces `stageA_mean_pooled/`. ~3 hours.
-4. `stage_a_pca/check_dim_variance.py` — per-dimension variance audit
-   (finds the "massive activation" outlier dimensions).
-5. `stage_a_pca/run_pca_all_layers.py` — fits PCA (3 variants) per layer
-   per condition, saves scores + the fitted transforms. Produces `stageA_pca/`.
-6. `stage_a_pca/correlate_pca_with_binding.py` /
-   `stage_a_pca/correlate_all_metrics.py` — correlate PCA axes against
-   BoltzGen's computational metrics (iptm, ipsae, etc.).
-7. `stage_a_pca/validate_layer14.py` — length-deconfounding + train/test
-   replication check on the early "layer 14" lead (debunked — see
-   `TODO.md` §"Layer-14 validation").
-8. `real_data_validation/embed_binder3_4.py` — embeds the one real binder
-   not present in the 80k set.
-9. `real_data_validation/project_real_binders.py` /
-   `real_data_validation/layer_hit_counts.py` /
-   `real_data_validation/permutation_test.py` — early n=4 real-data
+3. `phase1_layer_selection/stageA_layer_selection.py` — embeds all 80k
+   designs, both conditions, mean-pooled per layer. Produces
+   `stageA_mean_pooled/`. ~3 hours.
+4. `phase1_layer_selection/check_dim_variance.py` — per-dimension variance
+   audit (finds the "massive activation" outlier dimensions).
+5. `phase1_layer_selection/run_pca_all_layers.py` — fits PCA (3 variants)
+   per layer per condition, saves scores + the fitted transforms. Produces
+   `stageA_pca/`.
+6. `phase1_layer_selection/correlate_pca_with_binding.py` /
+   `phase1_layer_selection/correlate_all_metrics.py` — correlate PCA axes
+   against BoltzGen's computational metrics (iptm, ipsae, etc.).
+7. `phase1_layer_selection/validate_layer14.py` — length-deconfounding +
+   train/test replication check on the early "layer 14" lead (debunked —
+   see `TODO.md` §"Layer-14 validation").
+8. `phase1_layer_selection/embed_binder3_4.py` — embeds the one real
+   binder not present in the 80k set.
+9. `phase1_layer_selection/project_real_binders.py` /
+   `phase1_layer_selection/layer_hit_counts.py` /
+   `phase1_layer_selection/permutation_test.py` — early n=4 real-data
    analysis (superseded once more real data arrived; kept for the
    methodology, notably the exact permutation test).
-10. `real_data_validation/project_19_binders.py` — projects all 19 real
+10. `phase1_layer_selection/project_19_binders.py` — projects all 19 real
     binders (both experiments) onto every PCA axis.
-11. `real_data_validation/screen_then_confirm.py` /
-    `real_data_validation/audit_screen_confirm.py` — the core result:
+11. `phase1_layer_selection/screen_then_confirm.py` /
+    `phase1_layer_selection/audit_screen_confirm.py` — the core result:
     screen on 14 binders from one experiment, confirm on 4 held-out
     binders from a separate experiment. Finds the layer 7–9 / PC7 signal.
-12. `real_data_validation/linear_probe_per_layer.py` — independent
+12. `phase1_layer_selection/linear_probe_per_layer.py` — independent
     confirmation via a regularized multivariate probe (RidgeCV +
     LogisticRegressionCV), rather than a single hand-picked axis. Agrees
     with the layer 7–9 finding.
-13. `real_data_validation/cluster_layers_7_9.py` — HDBSCAN clustering test
-    (null result, and why that's expected).
+13. `phase1_layer_selection/cluster_layers_7_9.py` — HDBSCAN clustering
+    test (null result, and why that's expected).
 14. `figures/binding_evolution_heatmap.html`,
     `figures/linear_probe_chart.html`, `figures/combined_layer_evidence.html`
     — the visualizations.
-15. `phase2_residue_embeddings/embed_residue_layers_7_8_9.py` — Phase 2:
-    residue-level embeddings at layers 7–9, joint condition, all 80k
-    designs. Saved to the external drive. ~113 minutes.
+15. `phase2_feature_extraction/embed_residue_layers_7_8_9.py` — residue-level
+    embeddings at layers 7–9, joint condition, all 80k designs. Saved to
+    the external drive. ~113 minutes.
 
 `data/rank_lookup_row_indices.json` / `data/rank_lookup_sequences.json`
 resolve the 15-binder experiment's `design_spec_N` plasmid labels to unique

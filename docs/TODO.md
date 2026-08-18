@@ -319,7 +319,7 @@ the same 4 held-out confirmation points.
 ## Phase 2: residue-level embeddings + downstream plans
 
 ### Data generation (done)
-`phase2_residue_embeddings/embed_residue_layers_7_8_9.py` — re-embeds all 80k designs, JOINT
+`phase2_feature_extraction/embed_residue_layers_7_8_9.py` — re-embeds all 80k designs, JOINT
 condition only, RESIDUE-LEVEL (not mean-pooled) for layers 7, 8, 9
 specifically — the region established by two independent methods (PCA
 axis search and regularized linear probe) as most predictive of real
@@ -378,13 +378,17 @@ structural prediction of the new design.
 
 ## Repo reorganization
 Codebase reorganized from a flat 20-script directory into stage-based
-folders: `stage_a_pca/`, `real_data_validation/`, `phase2_residue_embeddings/`,
-`figures/`, `data/`, `docs/` (this file included). See `README.md` for the
+folders: `phase1_layer_selection/` (PCA search + regression-based
+confirmation, both binder-only and joint), `phase2_feature_extraction/`
+(residue-level embeddings and everything after — SAE work lands here too),
+plus `figures/`, `data/`, `docs/` (this file included). A future
+`phase3_binder_optimization/` will hold the generative/diffusion work once
+it exists. See `README.md` for the
 full layout. All scripts now resolve data paths relative to the repo root
 via `Path(__file__).resolve().parent.parent` rather than assuming a
 particular working directory, so they run correctly regardless of where
 they're invoked from — verified by actually running
-`stage_a_pca/check_dim_variance.py` from inside its new folder and
+`phase1_layer_selection/check_dim_variance.py` from inside its new folder and
 confirming output matches the original pre-move run exactly. Root-level
 data (`stageA_mean_pooled/`, `stageA_pca/`, the scores CSV) stayed at the
 repo root rather than moving — no benefit to relocating multi-GB gitignored
