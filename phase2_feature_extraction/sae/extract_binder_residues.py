@@ -63,7 +63,21 @@ D_MODEL = 1152
 
 MAIN = Path(__file__).resolve().parent.parent.parent
 PC7_SCORES_PATH = MAIN / "data" / "phase1_pca" / "joint" / "layer_09" / "covariance_all_dims_scores.npy"
-PC7_INDEX = 6  # 0-indexed -> "PC7" in every prior write-up (1-indexed naming)
+# 0-indexed column 7 -- NOT 6. Verified directly against phase1_layer_selection/
+# screen_then_confirm.py: its "PC{pc}" print uses the raw 0-indexed loop
+# variable (not 1-indexed), so "PC7" throughout this project's docs/TODO.md
+# means column 7. Confirmed empirically: column 7 reproduces the documented
+# weighted_concordance=0.904 (joint, layer 9, covariance_all_dims) on the
+# 14-binder screen set; column 6 gives an unremarkable 0.626. This was
+# previously wrong here (was 6) -- caught before it affected any PC7-based
+# feature selection, but note the currently-training layer 9 SAE's
+# train/val/test split was stratified by the WRONG column (6) as a result.
+# That doesn't invalidate the SAE itself (any reasonably-distributed
+# decile-stratification still gives a representative split for training
+# purposes) -- it just means the split isn't literally representative-by-
+# real-PC7 as intended. Not worth regenerating mid-training; layers 7/8
+# (not yet trained) will get the corrected stratification.
+PC7_INDEX = 7
 
 
 def load_manifest() -> list[dict]:
