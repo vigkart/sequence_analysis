@@ -273,7 +273,7 @@ new157 contamination-suspected duplicate).
   clustering was never going to find it.
 - Built a layer(0-35) x PC(0-19) weighted-concordance evolution map
   (`evolution_grid.npy`/`.json`, figure at
-  `sequence_analysis/binding_evolution_heatmap.html`, published as an
+  `figures/binding_evolution_heatmap.html`, published as an
   Artifact). Confirms peak at layer 9/PC7 (0.904); layers 7-9 hold 4 of
   the 5 strongest cells on the map, concentrated at PC7/PC8; elsewhere
   signal is diffuse across many components, none exceeding ~0.85.
@@ -311,15 +311,15 @@ the same 4 held-out confirmation points.
   best-supported layer choice for the diffusion pipeline.**
 - Visualized as line charts (joint vs. binder-alone panels, regression +
   classification-probability concordance per layer) at
-  `sequence_analysis/linear_probe_chart.html`, published as an Artifact.
+  `figures/linear_probe_chart.html`, published as an Artifact.
 - Combined with the PCA heatmap into one page,
-  `sequence_analysis/combined_layer_evidence.html`, published as an
+  `figures/combined_layer_evidence.html`, published as an
   Artifact — both lines of evidence shown together with a shared verdict.
 
 ## Phase 2: residue-level embeddings + downstream plans
 
 ### Data generation (done)
-`embed_residue_layers_7_8_9.py` — re-embeds all 80k designs, JOINT
+`phase2_residue_embeddings/embed_residue_layers_7_8_9.py` — re-embeds all 80k designs, JOINT
 condition only, RESIDUE-LEVEL (not mean-pooled) for layers 7, 8, 9
 specifically — the region established by two independent methods (PCA
 axis search and regularized linear probe) as most predictive of real
@@ -375,6 +375,20 @@ generation time: insert the diffused latent back into ESMC at the
 corresponding layer, run the remaining frozen ESMC blocks forward to
 decode a new binder sequence, then cofold the result with ESMFold2 for a
 structural prediction of the new design.
+
+## Repo reorganization
+Codebase reorganized from a flat 20-script directory into stage-based
+folders: `stage_a_pca/`, `real_data_validation/`, `phase2_residue_embeddings/`,
+`figures/`, `data/`, `docs/` (this file included). See `README.md` for the
+full layout. All scripts now resolve data paths relative to the repo root
+via `Path(__file__).resolve().parent.parent` rather than assuming a
+particular working directory, so they run correctly regardless of where
+they're invoked from — verified by actually running
+`stage_a_pca/check_dim_variance.py` from inside its new folder and
+confirming output matches the original pre-move run exactly. Root-level
+data (`stageA_mean_pooled/`, `stageA_pca/`, the scores CSV) stayed at the
+repo root rather than moving — no benefit to relocating multi-GB gitignored
+directories, only the code moved.
 
 ## PAUSED here — resume after more real (no-co-transfection) data.
 Do not start diffusion training before layer choice is on firmer ground.

@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 import torch
 from esm.models.esmc import ESMC
@@ -5,6 +7,7 @@ from esm.sdk.api import ESMProtein, LogitsConfig
 from esm.tokenization import get_esmc_model_tokenizers
 from esm.utils.constants.esm3 import data_root
 
+ROOT = Path(__file__).resolve().parent.parent
 BINDER3_4 = "NENKKKFLEKLKEILKELEADLKEDAALKAKAEAGEDPAVSYAKIAAKYEVYAELFKEVAKLAKELGLEKVSKAAEELAKELKAAAKEAEAKLKAEYAKKPETKAAADKAYEETYKEYKEKAKKKIEELRKLVE"
 TARGET_SEQ = "DATHTQIEEDVATQLTQLASIIKINYIKPE"
 
@@ -27,8 +30,8 @@ def mean_pooled_layers(sequence: str) -> np.ndarray:
 binder_alone = mean_pooled_layers(BINDER3_4)
 joint = mean_pooled_layers(f"{BINDER3_4}|{TARGET_SEQ}")
 
-np.save("stageA_mean_pooled/binder3_4_binder_alone.npy", binder_alone)
-np.save("stageA_mean_pooled/binder3_4_joint.npy", joint)
+np.save(ROOT / "stageA_mean_pooled" / "binder3_4_binder_alone.npy", binder_alone)
+np.save(ROOT / "stageA_mean_pooled" / "binder3_4_joint.npy", joint)
 print("binder_alone shape:", binder_alone.shape)
 print("joint shape:", joint.shape)
 print("done")

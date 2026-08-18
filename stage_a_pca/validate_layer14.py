@@ -3,9 +3,10 @@ from pathlib import Path
 
 import numpy as np
 
-CSV_PATH = "boltzgen_conf_1_batch_generation-scores.csv"
-IDS_PATH = "stageA_mean_pooled/ids.csv"
-PCA_DIR = Path("stageA_pca")
+ROOT = Path(__file__).resolve().parent.parent
+CSV_PATH = ROOT / "boltzgen_conf_1_batch_generation-scores.csv"
+IDS_PATH = ROOT / "stageA_mean_pooled" / "ids.csv"
+PCA_DIR = ROOT / "stageA_pca"
 N_PCS = 20
 VARIANTS = ["correlation_all_dims", "covariance_all_dims", "covariance_outliers_excluded"]
 CONDITIONS = ["binder_alone", "joint"]

@@ -9,10 +9,11 @@ N_PCS = 20
 VARIANTS = ["correlation_all_dims", "covariance_all_dims", "covariance_outliers_excluded"]
 CONDITIONS = ["binder_alone", "joint"]
 
-IN_DIR = Path("stageA_mean_pooled")
-PCA_DIR = Path("stageA_pca")
+ROOT = Path(__file__).resolve().parent.parent
+IN_DIR = ROOT / "stageA_mean_pooled"
+PCA_DIR = ROOT / "stageA_pca"
 
-with open("rank_lookup_row_indices.json") as f:
+with open(ROOT / "data" / "rank_lookup_row_indices.json") as f:
     rank_rows = json.load(f)
 
 # name -> (row_index or None [needs fresh embed], mCherry %, clean/flagged)

@@ -14,10 +14,11 @@ HIGH_THRESHOLD = 4.0
 RIDGE_ALPHAS = np.logspace(-2, 4, 40)
 LOGREG_CS = np.logspace(-3, 3, 40)
 
-IN_DIR = Path("stageA_mean_pooled")
-PCA_DIR = Path("stageA_pca")
+ROOT = Path(__file__).resolve().parent.parent
+IN_DIR = ROOT / "stageA_mean_pooled"
+PCA_DIR = ROOT / "stageA_pca"
 
-with open("rank_lookup_row_indices.json") as f:
+with open(ROOT / "data" / "rank_lookup_row_indices.json") as f:
     rank_rows = json.load(f)
 
 NEW14 = {
@@ -122,5 +123,5 @@ print("\n=== ranked by classification probability concordance on the 4 ===")
 for r in sorted(results, key=lambda r: -r["clf_proba_concordance"])[:15]:
     print(f"{r['condition']:12s} layer={r['layer']:2d}  clf_proba_concordance={r['clf_proba_concordance']:.3f}  clf_hit_rate={r['clf_hit_rate']*4:.0f}/4  reg_concordance={r['reg_concordance']:.3f}")
 
-with open("linear_probe_results.json", "w") as f:
+with open(ROOT / "data" / "linear_probe_results.json", "w") as f:
     json.dump(results, f, indent=2)

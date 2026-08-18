@@ -5,12 +5,13 @@ import numpy as np
 from sklearn.cluster import HDBSCAN
 from sklearn.preprocessing import StandardScaler
 
-PCA_DIR = Path("stageA_pca")
+ROOT = Path(__file__).resolve().parent.parent
+PCA_DIR = ROOT / "stageA_pca"
 N_PCS_FOR_CLUSTERING = 20
 VARIANT = "covariance_all_dims"
 CONDITION = "joint"
 
-with open("rank_lookup_row_indices.json") as f:
+with open(ROOT / "data" / "rank_lookup_row_indices.json") as f:
     rank_rows = json.load(f)
 
 # All 19 real binders with their row index (None for b44, freshly embedded, not in the 80k set)

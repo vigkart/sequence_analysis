@@ -12,10 +12,11 @@ CONDITIONS = ["binder_alone", "joint"]
 HIGH_THRESHOLD = 4.0
 HIGH_WEIGHT = 3.0
 
-IN_DIR = Path("stageA_mean_pooled")
-PCA_DIR = Path("stageA_pca")
+ROOT = Path(__file__).resolve().parent.parent
+IN_DIR = ROOT / "stageA_mean_pooled"
+PCA_DIR = ROOT / "stageA_pca"
 
-with open("rank_lookup_row_indices.json") as f:
+with open(ROOT / "data" / "rank_lookup_row_indices.json") as f:
     rank_rows = json.load(f)
 
 # "the 14": new-experiment binders, excluding only new154 (the one explicitly

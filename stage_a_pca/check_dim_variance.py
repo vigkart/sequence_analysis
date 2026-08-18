@@ -1,10 +1,13 @@
+from pathlib import Path
+
 import numpy as np
 
+ROOT = Path(__file__).resolve().parent.parent
 N, L, D = 80000, 36, 1152
 CHUNK = 5000
 
 for name in ["binder_alone_mean_hidden.f32", "binder_target_joint_mean_hidden.f32"]:
-    arr = np.memmap(f"stageA_mean_pooled/{name}", dtype="float32", mode="r", shape=(N, L, D))
+    arr = np.memmap(ROOT / "stageA_mean_pooled" / name, dtype="float32", mode="r", shape=(N, L, D))
 
     # Streaming mean/var per (layer, dim) to avoid loading all 13GB into RAM at once.
     sum_ = np.zeros((L, D), dtype=np.float64)
@@ -39,4 +42,4 @@ for name in ["binder_alone_mean_hidden.f32", "binder_target_joint_mean_hidden.f3
     most_common = counts.most_common(10)
     print(f"most frequently top-5 dims across all 36 layers: {most_common}")
 
-np.save("stageA_mean_pooled/_tmp_check_done.npy", np.array([1]))
+np.save(ROOT / "stageA_mean_pooled" / "_tmp_check_done.npy", np.array([1]))

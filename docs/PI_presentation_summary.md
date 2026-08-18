@@ -96,7 +96,7 @@ for) from two independent experiments:
   concordance against real activity) showing the signal is diffuse and weak
   everywhere else in the network and concentrates sharply at layers 7–9 —
   a genuine localized feature, visualized as a heatmap
-  (`sequence_analysis/binding_evolution_heatmap.html`).
+  (`figures/binding_evolution_heatmap.html`).
 - Notably, **binder-alone and joint conditions were statistically
   indistinguishable on every computational metric** (iptm, ipsae, etc.) —
   but the *real* functional signal only shows up in the joint condition.
