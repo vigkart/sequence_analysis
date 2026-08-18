@@ -72,9 +72,9 @@ the working machine, GitHub doesn't accept files this large:
 - `boltzgen_conf_1_batch_generation-scores.csv` (~72MB, 80k designed
   sequences + BoltzGen metrics — the source data everything else derives
   from; not included since it's project data, not code)
-- `stageA_mean_pooled/*.f32` (2 × ~12GB — mean-pooled ESMC embeddings for
+- `phase1_mean_pooled/*.f32` (2 × ~12GB — mean-pooled ESMC embeddings for
   all 80k designs, binder-alone and binder+target-joint conditions)
-- `stageA_pca/` (~3.3GB — fitted PCA transforms and per-design scores for
+- `phase1_pca/` (~3.3GB — fitted PCA transforms and per-design scores for
   every layer × condition × preprocessing variant)
 
 Phase 2's residue-level embeddings (~175GB) live entirely outside this repo,
@@ -88,12 +88,12 @@ on an external drive: `/Volumes/Extreme Pro/esmc_residue_embeddings/`.
 2. `speed_test_500.py` — throughput benchmark on 500 sequences.
 3. `phase1_layer_selection/stageA_layer_selection.py` — embeds all 80k
    designs, both conditions, mean-pooled per layer. Produces
-   `stageA_mean_pooled/`. ~3 hours.
+   `phase1_mean_pooled/`. ~3 hours.
 4. `phase1_layer_selection/check_dim_variance.py` — per-dimension variance
    audit (finds the "massive activation" outlier dimensions).
 5. `phase1_layer_selection/run_pca_all_layers.py` — fits PCA (3 variants)
    per layer per condition, saves scores + the fitted transforms. Produces
-   `stageA_pca/`.
+   `phase1_pca/`.
 6. `phase1_layer_selection/correlate_pca_with_binding.py` /
    `phase1_layer_selection/correlate_all_metrics.py` — correlate PCA axes
    against BoltzGen's computational metrics (iptm, ipsae, etc.).

@@ -10,8 +10,8 @@ VARIANTS = ["correlation_all_dims", "covariance_all_dims", "covariance_outliers_
 CONDITIONS = ["binder_alone", "joint"]
 
 ROOT = Path(__file__).resolve().parent.parent
-IN_DIR = ROOT / "stageA_mean_pooled"
-PCA_DIR = ROOT / "stageA_pca"
+IN_DIR = ROOT / "phase1_mean_pooled"
+PCA_DIR = ROOT / "phase1_pca"
 
 BINDER_NAMES = ["Binder1", "Binder2", "Binder3", "Binder3-4"]
 MCHERRY = np.array([7.26, 9.73, 6.44, 4.99])

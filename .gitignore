@@ -4,8 +4,8 @@ __pycache__/
 *.pyc
 
 # Large data outputs (regenerate locally — see README)
-stageA_mean_pooled/*.f32
-stageA_pca/
+phase1_mean_pooled/*.f32
+phase1_pca/
 boltzgen_conf_1_batch_generation-scores.csv
 boltzgen_conf_1_batch_generation-all-designs-metrics-passing.csv
 

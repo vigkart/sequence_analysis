@@ -16,7 +16,7 @@ ID_COL = "id - boltzgen"
 JOBNAME_COL = "Job Name"
 TARGET_SEQ = "DATHTQIEEDVATQLTQLASIIKINYIKPE"
 
-OUT_DIR = ROOT / "stageA_mean_pooled"
+OUT_DIR = ROOT / "phase1_mean_pooled"
 OUT_DIR.mkdir(exist_ok=True)
 
 N_LAYERS = 36

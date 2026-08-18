@@ -90,13 +90,13 @@ RoPE-distance artifacts? Verified by reading ESMC's source
 - [ ] Decide batching strategy based on benchmark result
 - [x] Stage A embeddings: mean-pooled per-layer, binder-alone AND
       binder+target-joint, all 80k designs (`stageA_layer_selection.py`,
-      output in `stageA_mean_pooled/`). Took 174.3 min at steady 7.65 seq/s
+      output in `phase1_mean_pooled/`). Took 174.3 min at steady 7.65 seq/s
       (both conditions combined per design). 36 layers (not 37 — verified
       empirically, docstring's n_layers+1 doesn't apply to this local
       class), mean excludes <cls>/<eos>. 13.27GB per condition.
 - [x] PCA across all 36 layers, both conditions, 3 variants (correlation;
       covariance all-dims; covariance outliers-excluded) — `run_pca_all_layers.py`,
-      output in `stageA_pca/{condition}/layer_NN/`. Top 50 PCs + explained
+      output in `phase1_pca/{condition}/layer_NN/`. Top 50 PCs + explained
       variance ratio saved per (layer, condition, variant).
       Findings: outlier dims (500/920/1091/269/522/... recurring set) are
       frequently highly correlated with each other (e.g. (920,1091) ~-0.9
@@ -169,7 +169,7 @@ still needed if we want to include the positive control.
 - Binder2 = design_spec_130, row 2007 (already in 80k dataset)
 - Binder3 = design_spec_144, row 16250 (already in 80k dataset)
 - Binder3-4 = not in dataset, embedded fresh (`embed_binder3_4.py`,
-  output `stageA_mean_pooled/binder3_4_{binder_alone,joint}.npy`)
+  output `phase1_mean_pooled/binder3_4_{binder_alone,joint}.npy`)
 
 ## Real-data ranking search (n=4, exploratory only — see caveats)
 `project_real_binders.py` projected the 4 real binders onto all 36 layers
@@ -390,7 +390,7 @@ particular working directory, so they run correctly regardless of where
 they're invoked from — verified by actually running
 `phase1_layer_selection/check_dim_variance.py` from inside its new folder and
 confirming output matches the original pre-move run exactly. Root-level
-data (`stageA_mean_pooled/`, `stageA_pca/`, the scores CSV) stayed at the
+data (`phase1_mean_pooled/`, `phase1_pca/`, the scores CSV) stayed at the
 repo root rather than moving — no benefit to relocating multi-GB gitignored
 directories, only the code moved.
 

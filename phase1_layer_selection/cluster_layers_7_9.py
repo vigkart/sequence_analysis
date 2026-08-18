@@ -6,7 +6,7 @@ from sklearn.cluster import HDBSCAN
 from sklearn.preprocessing import StandardScaler
 
 ROOT = Path(__file__).resolve().parent.parent
-PCA_DIR = ROOT / "stageA_pca"
+PCA_DIR = ROOT / "phase1_pca"
 N_PCS_FOR_CLUSTERING = 20
 VARIANT = "covariance_all_dims"
 CONDITION = "joint"

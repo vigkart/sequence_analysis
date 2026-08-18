@@ -10,8 +10,8 @@ VARIANTS = ["correlation_all_dims", "covariance_all_dims", "covariance_outliers_
 CONDITIONS = ["binder_alone", "joint"]
 
 ROOT = Path(__file__).resolve().parent.parent
-IN_DIR = ROOT / "stageA_mean_pooled"
-PCA_DIR = ROOT / "stageA_pca"
+IN_DIR = ROOT / "phase1_mean_pooled"
+PCA_DIR = ROOT / "phase1_pca"
 
 # Plasmid-number naming (corrected mapping: p130=Binder1, p144=Binder2, p154=Binder3, b44=Binder3-4)
 BINDER_NAMES = ["p130", "p144", "p154", "b44"]
