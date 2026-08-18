@@ -12,5 +12,8 @@ data/boltzgen_conf_1_batch_generation-all-designs-metrics-passing.csv
 # SAE training checkpoints (large binaries, regenerate via train.py)
 phase2_feature_extraction/sae/checkpoints/
 
+# SAE feature analysis outputs (regenerate via feature_analysis.py / fetch_interpro.py)
+phase2_feature_extraction/sae/feature_analysis_results/
+
 # OS
 .DS_Store
