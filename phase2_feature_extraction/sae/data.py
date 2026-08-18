@@ -1,0 +1,143 @@
+"""Load extracted binder-only per-residue activations (see
+extract_binder_residues.py) and build the train/val tensors for SAE
+training. Test is loaded separately (load_test_only, below) and never by
+train.py -- see that function's docstring for why.
+
+Expects a directory (e.g.
+/Volumes/Extreme Pro/esmc_residue_embeddings/sae_binder_only/layer_09/, as
+written by extract_binder_residues.py) containing:
+    activations.npy: (n_residues, d_model) float16, ALL 80k designs' binder
+        residues (target residues already excluded), one row per residue.
+    index.csv: row_index, id, start, length, split -- activations[start:
+        start+length] is that design's residues, in sequence order.
+        split is one of "train"/"val"/"test": test is 20% of the full 80k;
+        the remaining 80% ("trainval", 64k) is split again 90/10 into
+        train/val. Assigned once at the design level in
+        extract_binder_residues.py's build_split() (stratified by PC7
+        decile) and shared identically across all 3 layers' index.csv
+        files, so the same design lands in the same split for every layer.
+
+Unlike igemmodel's version of this file (multiple training sources,
+natural-binder eval-only carve-outs), this project has one homogeneous
+corpus (BoltzGen designs against one TET1 site) and the split is already
+resolved by the extraction step -- this module just loads it, no
+re-derivation of train/val logic here.
+
+IMPORTANT: "id" (design_spec_N) is NOT a unique identifier across the 80k
+dataset -- it repeats across all 320 BoltzGen design batches (see
+docs/TODO.md's "design_spec_N is NOT a unique ID" section, and
+extract_binder_residues.py's index.csv comment). Use row_index for anything
+that needs to resolve back to a specific design.
+"""
+
+from dataclasses import dataclass
+from pathlib import Path
+
+import numpy as np  # noqa: F401 -- must import before torch, see train.py's import-order note
+import pandas as pd
+import torch
+
+
+@dataclass
+class SAEDataset:
+    train_x: torch.Tensor  # (n_train, d_model) float16, RAW (uncentered, unscaled)
+    val_x: torch.Tensor  # (n_val, d_model) float16, RAW
+    train_row_index: np.ndarray  # (n_train,) int, the design each residue belongs to
+    val_row_index: np.ndarray
+    mean: torch.Tensor  # (d_model,) float32, computed from train_x only
+    scale: float  # computed from train_x only
+
+
+def _expand_to_residue_indices(rows: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
+    """rows: dataframe with start/length/row_index columns, one row per design.
+    Returns (residue_indices, residue_row_index) -- both length sum(rows.length)."""
+    idx_parts = []
+    row_index_parts = []
+    for start, length, row_index in zip(rows["start"], rows["length"], rows["row_index"]):
+        idx_parts.append(np.arange(start, start + length))
+        row_index_parts.append(np.full(length, row_index, dtype=np.int64))
+    return np.concatenate(idx_parts), np.concatenate(row_index_parts)
+
+
+def load_dataset(data_dir: Path) -> SAEDataset:
+    """Loads ONLY train+val into RAM (~18.4GB/layer for the current 64k
+    trainval pool) -- test is deliberately excluded here. test is a full 20%
+    of the real 80k (not a small slice of a shrunken pool, see
+    extract_binder_residues.py's module docstring for why), and loading it
+    here too would put us right back at the ~23GB-per-layer RAM pressure
+    this split was designed to avoid during training. Use load_test_only()
+    (below) to load it separately, only when actually needed (e.g.
+    feature_analysis.py's final evaluation)."""
+    data_dir = Path(data_dir)
+    index_df = pd.read_csv(data_dir / "index.csv")
+    trainval_df = index_df[index_df["split"].isin(["train", "val"])]
+
+    for name, rows in index_df.groupby("split"):
+        print(f"{name}: {len(rows)} designs, {rows['length'].sum()} residues")
+
+    # activations.npy is written via np.lib.format.open_memmap by the
+    # extraction script, covering ALL 80k designs (train+val+test) --
+    # memmap it and only materialize the train/val rows into RAM.
+    acts = np.load(data_dir / "activations.npy", mmap_mode="r")
+
+    splits = {}
+    for split_name in ("train", "val"):
+        rows = trainval_df[trainval_df["split"] == split_name]
+        idx, row_index = _expand_to_residue_indices(rows)
+        splits[split_name] = (torch.from_numpy(acts[idx].copy()), row_index)
+    del acts
+
+    train_x, train_row_index = splits["train"]
+    val_x, val_row_index = splits["val"]
+
+    mean = train_x.float().mean(dim=0)
+    centered_norms = (train_x.float() - mean).norm(dim=-1)
+    scale = float(train_x.shape[1] ** 0.5 / centered_norms.mean().item())
+    print(f"train mean norm={mean.norm().item():.4f}, scale={scale:.6f}")
+
+    return SAEDataset(
+        train_x=train_x,
+        val_x=val_x,
+        train_row_index=train_row_index,
+        val_row_index=val_row_index,
+        mean=mean,
+        scale=scale,
+    )
+
+
+def load_test_only(data_dir: Path) -> tuple[torch.Tensor, np.ndarray]:
+    """Loads just the held-out test split into RAM -- for final evaluation
+    (feature_analysis.py), never called from train.py. Returns (test_x,
+    test_row_index)."""
+    data_dir = Path(data_dir)
+    index_df = pd.read_csv(data_dir / "index.csv")
+    rows = index_df[index_df["split"] == "test"]
+    idx, row_index = _expand_to_residue_indices(rows)
+    acts = np.load(data_dir / "activations.npy", mmap_mode="r")
+    test_x = torch.from_numpy(acts[idx].copy())
+    del acts
+    return test_x, row_index
+
+
+def iter_batches(x: torch.Tensor, batch_size: int, shuffle: bool = True, generator=None):
+    """shuffle=True (training): random order, drops a ragged final batch.
+    shuffle=False (val/test): original row order preserved (so a parallel
+    row_index array stays aligned), includes a final partial batch so every
+    row is covered exactly once."""
+    n = x.shape[0]
+    if shuffle:
+        perm = torch.randperm(n, generator=generator)
+        n_full = (n // batch_size) * batch_size
+        for i in range(0, n_full, batch_size):
+            yield x[perm[i : i + batch_size]]
+    else:
+        for i in range(0, n, batch_size):
+            yield x[i : i + batch_size]
+
+
+def center_scale(x: torch.Tensor, mean: torch.Tensor, scale: float) -> torch.Tensor:
+    return (x.float() - mean) * scale
+
+
+def uncenter_unscale(x_proc: torch.Tensor, mean: torch.Tensor, scale: float) -> torch.Tensor:
+    return x_proc / scale + mean
