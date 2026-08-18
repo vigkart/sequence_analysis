@@ -48,15 +48,36 @@ class SAEDataset:
     scale: float  # computed from train_x only
 
 
-def _expand_to_residue_indices(rows: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
+def _load_rows(acts: np.memmap, rows: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
     """rows: dataframe with start/length/row_index columns, one row per design.
-    Returns (residue_indices, residue_row_index) -- both length sum(rows.length)."""
-    idx_parts = []
-    row_index_parts = []
-    for start, length, row_index in zip(rows["start"], rows["length"], rows["row_index"]):
-        idx_parts.append(np.arange(start, start + length))
-        row_index_parts.append(np.full(length, row_index, dtype=np.int64))
-    return np.concatenate(idx_parts), np.concatenate(row_index_parts)
+    Returns (activations, residue_row_index).
+
+    Deliberately NOT `acts[big_fancy_index_array].copy()` -- that was the
+    original approach and it was drastically slower in practice (confirmed:
+    a single-layer load stalled at ~9GB/18GB after 39 minutes on the
+    external drive). NumPy fancy indexing on a memmap doesn't recognize
+    that the index array is really ~57k contiguous per-design runs
+    concatenated together -- it gathers as if every index were an
+    independent random access, which degrades into brutal small-block I/O
+    on external-drive latency. Copying each design's own contiguous
+    [start:start+length] slice directly (same pattern
+    extract_binder_residues.py already uses successfully) makes every read
+    a real contiguous block instead. Rows are also sorted by `start` first
+    so the sequence of reads is monotonically increasing through the file,
+    rather than jumping around in the decile-shuffled order index.csv rows
+    happen to be in."""
+    rows = rows.sort_values("start")
+    total = int(rows["length"].sum())
+    out = np.empty((total, acts.shape[1]), dtype=acts.dtype)
+    row_index = np.empty(total, dtype=np.int64)
+
+    cursor = 0
+    for start, length, r_idx in zip(rows["start"], rows["length"], rows["row_index"]):
+        out[cursor:cursor + length] = acts[start:start + length]
+        row_index[cursor:cursor + length] = r_idx
+        cursor += length
+    assert cursor == total
+    return out, row_index
 
 
 def load_dataset(data_dir: Path) -> SAEDataset:
@@ -83,8 +104,8 @@ def load_dataset(data_dir: Path) -> SAEDataset:
     splits = {}
     for split_name in ("train", "val"):
         rows = trainval_df[trainval_df["split"] == split_name]
-        idx, row_index = _expand_to_residue_indices(rows)
-        splits[split_name] = (torch.from_numpy(acts[idx].copy()), row_index)
+        x, row_index = _load_rows(acts, rows)
+        splits[split_name] = (torch.from_numpy(x), row_index)
     del acts
 
     train_x, train_row_index = splits["train"]
@@ -112,11 +133,10 @@ def load_test_only(data_dir: Path) -> tuple[torch.Tensor, np.ndarray]:
     data_dir = Path(data_dir)
     index_df = pd.read_csv(data_dir / "index.csv")
     rows = index_df[index_df["split"] == "test"]
-    idx, row_index = _expand_to_residue_indices(rows)
     acts = np.load(data_dir / "activations.npy", mmap_mode="r")
-    test_x = torch.from_numpy(acts[idx].copy())
+    x, row_index = _load_rows(acts, rows)
     del acts
-    return test_x, row_index
+    return torch.from_numpy(x), row_index
 
 
 def iter_batches(x: torch.Tensor, batch_size: int, shuffle: bool = True, generator=None):

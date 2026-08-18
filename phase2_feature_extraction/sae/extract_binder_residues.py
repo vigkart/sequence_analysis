@@ -74,14 +74,27 @@ def load_manifest() -> list[dict]:
         ]
 
 
-def build_split(manifest: list[dict], val_frac: float, test_frac: float, seed: int, n_bins: int = 10) -> list[dict]:
+def build_split(
+    manifest: list[dict], val_frac: float, test_frac: float, seed: int,
+    n_bins: int = 10, trainval_keep_frac: float = 1.0,
+) -> list[dict]:
     """Returns one dict per design (ALL 80k, none dropped): {row_index, id,
-    pc7_score, pc7_decile, split}. split in {"train", "val", "test"}.
+    pc7_score, pc7_decile, split}. split in {"train", "val", "test", "unused"}.
 
     Two-stage, both stratified by PC7 decile: first carve test_frac of the
     FULL pool out as "test"; then split what's left (the "trainval" pool)
     by val_frac into "train"/"val". val_frac is relative to the trainval
-    pool, not the full 80k -- see module docstring."""
+    pool, not the full 80k -- see module docstring.
+
+    trainval_keep_frac (default 1.0, no-op): after the train/val split,
+    randomly demote (1 - trainval_keep_frac) of the "train" and "val" rows
+    each to "unused" -- data.py's load_dataset only loads "train"/"val", so
+    this directly controls the RAM footprint during training without
+    touching test (which was never loaded into RAM in the first place, so
+    shrinking it wouldn't help). Applied within each PC7 decile bin, so the
+    shrunken train/val still spans the full score range. "unused" designs
+    stay in activations.npy/index.csv (nothing is deleted) -- only their
+    split label changes, so they're simply skipped, not lost."""
     pc7 = np.load(PC7_SCORES_PATH)[:, PC7_INDEX]
     assert pc7.shape[0] == len(manifest), "PC7 scores don't align with manifest row count"
 
@@ -101,13 +114,18 @@ def build_split(manifest: list[dict], val_frac: float, test_frac: float, seed: i
         test = bin_rows[:n_test]
 
         n_val = round(len(trainval) * val_frac)
+        val_rows = trainval[:n_val]
+        train_rows = trainval[n_val:]
+
         splits_by_row = {}
         for row_idx in test:
             splits_by_row[row_idx] = "test"
-        for row_idx in trainval[:n_val]:
-            splits_by_row[row_idx] = "val"
-        for row_idx in trainval[n_val:]:
-            splits_by_row[row_idx] = "train"
+        for label, group in [("val", val_rows), ("train", train_rows)]:
+            n_keep = round(len(group) * trainval_keep_frac)
+            for row_idx in group[:n_keep]:
+                splits_by_row[row_idx] = label
+            for row_idx in group[n_keep:]:
+                splits_by_row[row_idx] = "unused"
 
         for row_idx, split in splits_by_row.items():
             rows.append({
@@ -118,7 +136,7 @@ def build_split(manifest: list[dict], val_frac: float, test_frac: float, seed: i
                 "split": split,
             })
 
-    n_by_split = {s: sum(1 for r in rows if r["split"] == s) for s in ("train", "val", "test")}
+    n_by_split = {s: sum(1 for r in rows if r["split"] == s) for s in ("train", "val", "test", "unused")}
     print(f"split: {len(rows)}/{len(manifest)} designs -- counts: {n_by_split}")
     return rows
 
@@ -166,12 +184,45 @@ def extract_layer(layer: int, split_rows: list[dict], manifest: list[dict], tota
     print(f"layer {layer}: done, wrote {out_index_path}")
 
 
+def relabel_layer(layer: int, split_by_row: dict[int, str]) -> None:
+    """Rewrites just the `split` column of an already-extracted layer's
+    index.csv to match a new design_split.csv -- activations.npy is
+    untouched (every design's residues are still at the same byte offset;
+    only which split label a design carries changes). Used when
+    trainval_keep_frac shrinks the training pool without re-running the
+    expensive (~6 min/layer) copy out of the big external memmap."""
+    layer_dir = OUT_DIR / f"layer_{layer:02d}"
+    index_path = layer_dir / "index.csv"
+    with open(index_path, newline="") as f:
+        rows = list(csv.DictReader(f))
+    for row in rows:
+        row["split"] = split_by_row[int(row["row_index"])]
+    with open(index_path, "w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=["row_index", "id", "start", "length", "split"])
+        w.writeheader()
+        w.writerows(rows)
+    n_by_split = {s: sum(1 for r in rows if r["split"] == s) for s in ("train", "val", "test", "unused")}
+    print(f"layer {layer}: relabeled {index_path} -- counts: {n_by_split}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--layers", type=int, nargs="+", default=LAYERS_ALL, choices=LAYERS_ALL)
     parser.add_argument("--test-frac", type=float, default=0.20, help="Fraction of the FULL 80k held out as test.")
     parser.add_argument("--val-frac", type=float, default=0.10, help="Fraction of the remaining trainval pool (not the full 80k) used for val.")
+    parser.add_argument(
+        "--trainval-keep-frac", type=float, default=1.0,
+        help="Fraction of the trainval pool actually kept as train/val (rest -> 'unused'). "
+        "See build_split's docstring -- controls RAM footprint during training.",
+    )
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument(
+        "--relabel-only", action="store_true",
+        help="Regenerate design_split.csv and patch each layer's index.csv split column "
+        "WITHOUT re-copying activations.npy (fast -- seconds, not minutes). Use this to "
+        "change --trainval-keep-frac (or other split params) after the initial extraction "
+        "has already run once.",
+    )
     args = parser.parse_args()
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -179,8 +230,8 @@ def main() -> None:
     total_residues_all = manifest[-1]["flat_start"] + manifest[-1]["total_length"]
 
     split_path = OUT_DIR / "design_split.csv"
-    if split_path.exists():
-        print(f"design_split.csv already exists, reusing it (delete to regenerate): {split_path}")
+    if split_path.exists() and not args.relabel_only:
+        print(f"design_split.csv already exists, reusing it (delete or pass --relabel-only to regenerate): {split_path}")
         with open(split_path, newline="") as f:
             split_rows = [
                 {"row_index": int(row["row_index"]), "id": row["id"], "pc7_score": float(row["pc7_score"]),
@@ -188,15 +239,20 @@ def main() -> None:
                 for row in csv.DictReader(f)
             ]
     else:
-        split_rows = build_split(manifest, args.val_frac, args.test_frac, args.seed)
+        split_rows = build_split(manifest, args.val_frac, args.test_frac, args.seed, trainval_keep_frac=args.trainval_keep_frac)
         with open(split_path, "w", newline="") as f:
             w = csv.DictWriter(f, fieldnames=["row_index", "id", "pc7_score", "pc7_decile", "split"])
             w.writeheader()
             w.writerows(split_rows)
         print(f"wrote {split_path}")
 
-    for layer in args.layers:
-        extract_layer(layer, split_rows, manifest, total_residues_all)
+    if args.relabel_only:
+        split_by_row = {r["row_index"]: r["split"] for r in split_rows}
+        for layer in args.layers:
+            relabel_layer(layer, split_by_row)
+    else:
+        for layer in args.layers:
+            extract_layer(layer, split_rows, manifest, total_residues_all)
 
 
 if __name__ == "__main__":
