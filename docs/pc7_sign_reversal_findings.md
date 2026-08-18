@@ -6,13 +6,21 @@ real problem with the underlying PC7 finding. Not merged into `TODO.md`
 since that file has other uncommitted edits in progress elsewhere — fold
 this in wherever makes sense once you've reviewed it.
 
-**Bottom line up front:** the direction of the PC7/layer-7-9 finding (which
-end predicts good binding) does not replicate between the two real-data
-experiments, and this is not noise — it's a statistically significant,
-systematic reversal. The *existence* of a real signal at these layers still
-looks likely, but not its *direction*, and until that's resolved, nothing
-built on "high PC7 = good binder" (or the reverse) should be trusted,
-including the planned SAE best/worst-binder feature selection.
+**Bottom line up front (updated after more digging — see the batch-shift
+section below):** the original screen-then-confirm methodology had a real
+bug (sign-agnostic confirmation) that made the two experiments look like
+they disagreed on PC7's direction. Following up, the two experiments turn
+out not to be on a comparable activity scale at all — the "previous
+experiment" confirm set reads more than 2x higher in raw % mCherry on
+average, for reasons unrelated to PC7. Once that batch-level offset is
+accounted for, the pooled evidence points back toward the **screen set's
+original direction (higher PC7 → lower binding)**, not a genuine reversal.
+Current best read: PC7's direction is probably the screen's, and the
+"confirmation" step's apparent contradiction was a small-n artifact of
+pooling two batches that were never on the same scale — not evidence that
+the direction is fundamentally unstable. Still not fully resolved (see
+"What's left" below), but meaningfully less alarming than it looked a few
+hours ago.
 
 ## How this was found
 
@@ -123,21 +131,85 @@ reversal doesn't just persist — it strengthens**: 21/50 candidates hit
 complete reversal (vs. 12/50 with `b44` included). Not a `b44`-specific
 bug.
 
-## What's left: leading hypothesis, unconfirmed
+## Verification pass: data-entry, hand arithmetic, reorg artifacts
 
-With length and the one-off-script explanation ruled out, and the
-statistical evidence pointing at a real (not noise) reversal, the most
-plausible remaining explanation is a **batch effect between the two
-wet-lab experiments** — different assay date, calibration, or
-normalization between the "previous" and "new" rounds of testing — that a
-real ESMC-encoded signal interacts with differently in the two batches.
-Both real-data sources are documented elsewhere as the same no-TET
-co-transfection condition against the same site, so it isn't that known
-condition difference; it would have to be something else about how the
-two rounds were run. **This is a hypothesis, not a finding** — I don't
-have wet-lab context (assay dates, protocols, calibration records) to
-check it further; that's a question for you, not something computable
-from this repo's data.
+Before trusting any of the above, went back and checked it wasn't a
+mistake somewhere mundane:
+
+- **Cross-checked every value against the full wet-lab tables** (both the
+  15-binder and previous-3-binder experiments, as provided directly):
+  all 14 NEW14 values and all 4 PREV4 (no-TET) values match exactly what
+  the code used. No transcription error.
+- **Robustness check with `new154`** (originally excluded as "flagged
+  inaccurate," now available): re-ran the full sign-locked screen with all
+  15 binders instead of 14. Same top axis (layer 9, joint,
+  covariance_all_dims, PC7, same negative direction), same outcome
+  (0/50 genuinely confirmed, mean_locked=0.240 vs. 0.263 before). `new154`
+  wasn't suppressing or manufacturing the reversal.
+- **Hand-verified the arithmetic**, no code involved: computed all 6
+  pairwise PC7-vs-label comparisons for the confirm set by hand from the
+  raw numbers (all 6 positively concordant, matching the code) and spot-
+  checked 2 pairs from the screen set by hand (both discordant with the
+  confirm set's direction, matching the code). The concordance formula is
+  also symmetric under swapping any pair's order, so pair-list ordering
+  can't hide a sign flip.
+- **Checked for reorg-related staleness** (the codebase went through
+  several directory reorganizations recently): verified `pca.mean_`
+  matches the current raw embeddings' actual mean to full floating-point
+  precision (0.00000000 difference) — if the PCA had been fit on an older
+  or different version of the embeddings, this would show a gap. Also
+  verified file sizes match expected byte counts exactly, modification
+  timestamps are in the correct dependency order (scores CSV → embeddings
+  → PCA fit → rank lookups), and `rank_lookup_row_indices.json` still
+  resolves to the exact same sequences currently in the scores CSV for all
+  15 real binders. No desync found anywhere checked.
+
+## The actual explanation: the two experiments aren't on the same scale
+
+Looking at all 18 real binders sorted by PC7 (not just concordance
+statistics) made the pattern visible directly: the "previous experiment"
+(confirm set) binders sit near the top of the overall activity
+distribution almost regardless of their PC7 value. Quantified:
+
+- Screen (14) mean label: **3.12%**
+- Confirm (4) mean label: **7.10%** — more than double, unrelated to PC7
+
+This constant-per-batch shift can't affect the confirm set's *internal*
+pairwise concordance (subtracting a constant doesn't change which of two
+points is bigger) — so the "perfect 6/6" result there was never going to
+be touched by it. But it does mean naively pooling raw values across both
+batches, or treating the confirm set as validating a claim about absolute
+activity level, is comparing numbers that were never on the same footing.
+
+Correcting for it directly: pooling all 18 points and comparing PC7 to
+each point's deviation from *its own batch's mean* (rather than the raw
+label) flips the pooled correlation back toward the screen's original
+direction:
+
+| | Spearman ρ (PC7 vs. label), n=18 pooled |
+|---|---|
+| Naive (raw labels) | -0.193 |
+| Batch-mean-corrected | **-0.226** |
+
+Neither is significant at this n with this simple pooling (not a
+replacement for the proper weighted/pairwise methodology — just a
+diagnostic), but both are negative, matching the screen set, not the
+confirm set's apparent reversal.
+
+**Most likely explanation**: the confirm set's "perfect positive" result
+was a small-n coincidence, not a real reversal. Two probably-unrelated
+facts about that batch — (1) it reads ~2.3x higher across the board for
+reasons that look like calibration/normalization rather than binding
+quality, and (2) by chance, 3 of its 4 points also happen to sit at the
+higher end of the PC7 range — combined to produce a spurious positive
+result in a test with only 6 pairs to explain. The screen set's negative
+direction is the more defensible one to trust right now.
+
+**Still not fully closed**: this is a plausible, well-supported
+reconstruction, not a wet-lab-confirmed fact — I don't have assay
+records/dates to confirm a calibration difference actually happened
+between the two rounds; that's a question for you or whoever ran the
+experiments, not something computable from this repo.
 
 ## What this does and doesn't affect
 
@@ -147,26 +219,34 @@ from this repo's data.
 - **Does affect** anything downstream that assumed a validated direction:
   the planned "best/worst PC7 binders" SAE feature selection, and TODO's
   step 5 ("cross-reference SAE features against PC7 to explain why it
-  separates good from bad binders"). Both are on hold pending this.
+  separates good from bad binders"). Recommend using the screen set's
+  direction (higher PC7 → lower binding) for these given the batch-shift
+  finding above, but flag it as a working assumption pending wet-lab
+  confirmation, not a fully closed question.
 - **Does not mean PC7/layers 7-9 have zero relationship to binding** — the
   rank-separation power (concordance meaningfully above chance) and the
   layer localization (7-9 keep surfacing via multiple independent methods)
-  both still look real. What's unresolved is direction, not existence.
+  both still look real, and the batch-shift finding actually makes the
+  screen set's direction more trustworthy than it looked a few hours ago,
+  not less.
 
 ## Suggested next steps (your call)
 
 1. Check with whoever ran the two experiments whether there's a known
    calibration/normalization difference between the "previous" and "new"
-   mCherry rounds that could explain a real signal flipping sign.
-2. Once resolved (or if it can't be), decide how to proceed with
-   the best/worst-binder feature selection — possible options include:
-   waiting for more real data to triangulate a stable direction, using
-   within-batch-only comparisons (never mixing the two experiments'
-   labels for a single directional claim), or dropping the
-   binary-direction framing and selecting features by extreme-vs-extreme
-   PC7 groups without labeling either side "best."
-3. Worth deciding whether this changes how much weight the layer 7-9
-   choice itself should carry going forward, independent of the SAE work.
+   mCherry rounds — would directly confirm (or rule out) the batch-shift
+   explanation above.
+2. If confirmed: the screen set's negative direction (higher PC7 → lower
+   binding) is the one to build on for best/worst-binder feature
+   selection. If it can't be confirmed either way, consider getting the
+   confirm-set binders re-measured in the same batch/session as a future
+   round of real data, so a same-scale confirmation actually becomes
+   possible.
+3. Either way, worth being careful going forward to never pool raw
+   activity values across these two experimental batches without
+   correcting for the batch-level offset first — the naive pooled
+   correlation and the batch-corrected one point in different directions
+   at small n, which this session's exploration ran into directly.
 
 ## Files added this session (all on `sae-training`, pushed)
 
