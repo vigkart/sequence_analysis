@@ -316,5 +316,65 @@ the same 4 held-out confirmation points.
   `sequence_analysis/combined_layer_evidence.html`, published as an
   Artifact — both lines of evidence shown together with a shared verdict.
 
+## Phase 2: residue-level embeddings + downstream plans
+
+### Data generation (done)
+`embed_residue_layers_7_8_9.py` — re-embeds all 80k designs, JOINT
+condition only, RESIDUE-LEVEL (not mean-pooled) for layers 7, 8, 9
+specifically — the region established by two independent methods (PCA
+axis search and regularized linear probe) as most predictive of real
+binding activity.
+- Saved to the external drive, **not local disk**:
+  `/Volumes/Extreme Pro/esmc_residue_embeddings/` (internal disk only has
+  ~45GB free, nowhere near enough for the ~175GB this needs).
+- Storage format: one flat fp32 memmap (`layers_7_8_9_joint.f32`, shape
+  `(12,638,290 total residues, 3 layers, 1152 dims)`) plus `manifest.csv`
+  mapping each of the 80k designs to its byte range (`flat_start`,
+  `total_length`) and the exact token-index boundaries for binder vs.
+  target residues within that range (`binder_res_start/end`,
+  `target_res_start/end`). Verified against real tokenizer output before
+  the full run — cls/chain-break/eos positions and decoded binder/target
+  spans all matched exactly.
+- ~174.7GB total. No compute savings from only keeping 3 layers instead of
+  all 36 — ESMC's forward pass always computes all layers regardless; this
+  only reduces what gets written to disk.
+- Completed: 80,000/80,000 designs, 113.1 min (11.79 seq/s), exit code 0.
+  File size matches the precomputed 174,711,720,960 bytes exactly.
+  Spot-checked 5 rows spanning start/middle/end of the file: no NaNs, no
+  zero-filled residues, activation statistics consistent across rows, and
+  binder/target span boundaries in the manifest correctly align with real
+  data. Ready for Stage B/C work (SAE training, diffusion head).
+
+### Future direction 1: sparse autoencoder + LLM feature annotation
+Train an SAE on the residue-level layer 7-9 embeddings, but **only on
+binder residues** (sliced out via `manifest.csv`'s `binder_res_start/end`)
+— not the target residues. Important: the target still needs to be
+co-attended during the forward pass (hence embedding jointly, not
+binder-alone), even though the target's own residue embeddings aren't
+used to train the SAE — they're kept in the saved data for later use, not
+discarded.
+
+Annotation pipeline once the SAE is trained:
+1. For every SAE feature, retrieve its top 15 maximally-activating example
+   residues/sequences across the 80k binder set.
+2. Scan the local sequence context around each of those 15 examples with
+   InterProScan.
+3. Send the InterPro annotations + the 15 example sequences to an LLM for
+   feature-level annotation.
+4. Repeat for all SAE features.
+5. Cross-reference which interpretable features align with the PC7
+   (layers 7-9, mean-pooled joint embedding) binding-relevant direction
+   established earlier — do any SAE features correspond to recognizable
+   motifs that explain why PC7 separates good binders from bad ones?
+
+### Future direction 2: diffusion head in embedding space
+Train a lightweight diffusion head that diffuses binder residue embeddings
+in the layer 7-9 latent space, optimized toward higher predicted binding
+via the established PC7 (layers 7-9) axis as the guidance/objective. At
+generation time: insert the diffused latent back into ESMC at the
+corresponding layer, run the remaining frozen ESMC blocks forward to
+decode a new binder sequence, then cofold the result with ESMFold2 for a
+structural prediction of the new design.
+
 ## PAUSED here — resume after more real (no-co-transfection) data.
 Do not start diffusion training before layer choice is on firmer ground.
