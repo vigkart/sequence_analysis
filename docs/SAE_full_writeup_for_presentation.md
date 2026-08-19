@@ -266,12 +266,40 @@ whether this is *binding-relevant* or just a shared *scaffold* feature
 produce, unrelated to binding) is not yet resolved — that distinction
 hinges on whether these positions are spatially near the binder-target
 interface or on the face pointing away from it, which needs the
-predicted 3D structures to check (in progress).
+predicted 3D structures to check.
 
-**Status**: this is the most concrete, specific lead to come out of the
-whole feature-analysis pipeline — worth flagging as a hypothesis for a
-future design/wet-lab round, explicitly **not** a validated finding at
-this n.
+### Structural check: resolved — mostly against the binding-relevant hypothesis
+
+Using the actual predicted complex structures
+(`Final_designs/boltzgen_conf_1_batch_generation-top-1000-by-composite/`,
+`rank0014_design_spec_157.cif` / `rank0019_design_spec_241.cif`), with
+the binder chain in each verified by **exact sequence match** against the
+sequences used throughout this analysis (not trusted by filename alone —
+`design_spec_N` repeats across the 80k pool, see `docs/TODO.md`). For
+each candidate residue, measured CA–CA distance to the nearest
+target-chain residue, and expressed it as a percentile of that binder's
+own full distance-to-target distribution (calibration baseline —
+"typical" for that specific structure):
+
+| Feature | new157 distance (percentile) | new241 distance (percentile) | Interpretation |
+|---|---|---|---|
+| 11736 ("ATG" motif) | 23.7 Å (96th) | 22.0 Å (92nd) | Among the **farthest** residues from target in both — not interface-relevant |
+| 12086 ("NGGIE" exact match) | 14.4 Å (56th) | 12.2 Å (45th) | Roughly **median** distance in both — unremarkable, not interface-proximal |
+| 5521 (weak sequence match) | 10.1 Å (32nd) | 7.9 Å (17th) | Relatively **closer** than the other two, though still not a direct contact (binder's own closest residue is ~4.4 Å in both structures) |
+
+**Status**: resolved, mostly against the binding-relevant hypothesis. The
+two motifs that looked most compelling on sequence alone (feature 11736's
+exact "ATG" match and feature 12086's exact "NGGIE" match) both sit far
+from the predicted interface — consistent with shared *scaffold*
+architecture rather than a binding-relevant motif, and consistent with
+this whole analysis's dominant theme (§6 keyword analysis, InterProScan's
+Bcl-2-fold dominance) that ESMC/SAE features mostly capture generic fold
+identity, not binding specificity. Feature 5521 — the weakest sequence
+match — is ironically the most interface-proximal of the three, though
+still 1.8–2.3x farther than each binder's own closest residue, so this is
+not a strong lead either. **Net effect: this test did what it was
+supposed to do — it downgrades rather than confirms this lead. Not
+recommended as a design target without further, stronger evidence.**
 
 ---
 
@@ -283,7 +311,8 @@ this n.
 - ✅ LLM feature labeling (full dictionary, 16,384 features)
 - ✅ Feature-vs-binding correlation, tested rigorously (null result)
 - ✅ Lasso multivariate probe (null result)
-- 🔄 Structural check of the shared new157/new241 motif (pending structure files)
+- ✅ Structural check of the shared new157/new241 motif — resolved, mostly
+  against the binding-relevant hypothesis (see §7)
 - ⬜ Layers 7/8 SAE training (not started)
 - ⬜ Cross-referencing interpretable features against the PC7 direction
   (blocked on the PC7 direction question — see `docs/pc7_sign_reversal_findings.md`)
