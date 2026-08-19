@@ -205,11 +205,55 @@ higher end of the PC7 range — combined to produce a spurious positive
 result in a test with only 6 pairs to explain. The screen set's negative
 direction is the more defensible one to trust right now.
 
-**Still not fully closed**: this is a plausible, well-supported
-reconstruction, not a wet-lab-confirmed fact — I don't have assay
-records/dates to confirm a calibration difference actually happened
-between the two rounds; that's a question for you or whoever ran the
-experiments, not something computable from this repo.
+**Update — wet-lab confirmation, not just a computational hypothesis
+anymore**: the two experiments' own positive controls (KY136/KY_136,
+no-TET) differ by **1.99x** (72.8% previous experiment vs. 36.56% new
+experiment) — independently sourced from the actual assay records, not
+derived from the binder data at all. That's remarkably close to the
+2.28x ratio estimated purely computationally above (screen-batch mean
+3.12% / confirm-batch mean 7.10%). Two independent measurements landing
+within ~15% of each other is real corroboration, not coincidence.
+
+Re-ran the pooled direction check using the proper normalization this
+implies (X = mCherry / own-experiment's positive control, exactly the
+method proposed by the researchers who ran the assays) instead of the
+cruder batch-mean-subtraction used above:
+
+| Normalization | Pooled ρ (PC7 vs. activity, n=18) |
+|---|---|
+| Raw, unnormalized | -0.193 |
+| Batch-mean-corrected | -0.226 |
+| **Control-ratio-normalized** | **-0.321** |
+
+The properly-motivated normalization strengthens the match to the
+screen set's original direction, not weakens it. Still not significant
+at conventional levels with this simple pooled check at n=18 (not a
+substitute for the real weighted/pairwise methodology) — but now the
+most internally consistent version of this analysis, and grounded in an
+actual measured batch difference rather than an inferred one.
+
+**Caveat on the caveat**: the new experiment's own positive control
+(well 16) was itself flagged by the researcher who ran the assay for
+having too few cells in that well — so the denominator in the
+control-ratio normalization above carries its own uncertainty. Doesn't
+change the direction, but is a reason not to overstate how "closed" this
+now is.
+
+**Sequence-to-plasmid mapping, checked and ruled out as a concern**: an
+older mapping issue (design_spec_130/144/154 swapped against the wrong
+activity values) was raised as a possible explanation. Checked directly
+against the raw data: the row indices used throughout this entire
+investigation (2007/16250/30263) resolve to design_spec_130/144/154 with
+sequence prefixes matching the confirmed-correct mapping already noted
+elsewhere in this project's history. Not a live issue for anything above.
+
+**Still not fully closed**: this is now a well-corroborated
+reconstruction (computational estimate + independent wet-lab
+measurement agreeing within ~15%), not a 100%-certain fact — the
+control-well cell-count caveat above is the main remaining source of
+uncertainty. A repeat experiment with a cleaner control read (already
+planned, per the researchers' own next steps) would be the direct way to
+close this out.
 
 ## What this does and doesn't affect
 
