@@ -45,6 +45,24 @@ in the 80k pool), using the exact methodology from the PC7 investigation:
 No feature can currently be said to represent binding with statistical
 confidence — same conclusion as PC7's own final state.
 
+**A more direct, intuitive version of the same result** (the same
+observed-vs-chance framing that made the PC7 finding legible): restricting
+to features with a *fully* informative confirm test (all 6 real pairs
+between the 4 confirm binders, no ties/degenerate cases), and counting how
+many hit a "perfect" locked-confirm score —
+
+| Pooling | Fully-informative features | Hit "perfect" | Expected by pure chance | Ratio |
+|---|---|---|---|---|
+| max | 1,101 | 51 | 45.9 | 1.11x |
+| mean | 1,101 | 38 | 45.9 | 0.83x |
+
+Compare to PC7's original screen, which showed a real ~4x excess over
+chance (8 of 25 vs. ~2 expected) — still misleading due to the sign-agnostic
+bug, but at least a genuine statistical signal. Here there's no excess in
+either direction — the count of apparently-perfect features is exactly
+what undirected noise across 16,384 tries would produce. **This is a
+clean, unambiguous null result, not just an absence of evidence.**
+
 **A real bug caught and fixed along the way**: max/mean-pooled SAE
 activations are frequently exactly 0.0 for many designs at once (these
 are sparse features — most simply don't fire on a given ~150-residue
