@@ -86,6 +86,56 @@ independently-computed max-pool and mean-pool versions — a mild, not
 statistically validated, point of agreement. Full ranked tables:
 `feature_analysis_results/layer_09/binding_correlation_{max,mean}pool.csv`.
 
+## 4. Could a COMBINATION of features (not one universal feature) predict binding?
+
+Real, distinct hypothesis worth testing on its own: if binding is achieved
+via several structurally different solutions across the binder set (binder
+A via one motif, binder B via another), no *single* feature would show a
+global correlation even if each subgroup's own feature is a real, strong,
+causal driver within that subgroup — §2's univariate test structurally
+cannot detect this.
+
+**Aggregate "distinctiveness" test** (`correlate_distinctiveness_with_binding.py`):
+does having *some* unusually rare/intense feature active, regardless of
+which one, correlate with activity? Weak, inconclusive (screen concordance
+0.54–0.66, well below even the top single features) — likely diluted by
+the fact that ~20% of the entire 16,384-feature dictionary is "active
+somewhere" in any given ~140-residue design, swamping whatever signal a
+handful of truly special features might carry.
+
+**Lasso multivariate probe** (`lasso_probe_binding.py`), the properly-powered
+version — same approach iGEM's own prior pipeline used: `LassoCV` across
+all 16,384 pooled features at once, capable of selecting a genuinely
+different combination than any single-feature test could. Fit on the
+14-screen only; the fitted model is then applied **unchanged** to the 4
+confirm binders (no refitting), scored with a genuinely **signed** metric
+(Pearson/Spearman on real predictions) — not sign-agnostic concordance,
+directly applying the PC7 lesson that a sign-agnostic metric can mask a
+backwards relationship.
+
+| Pooling | Nested LOO-CV on the 14 (training) | Nonzero features | Held-out on the 4 (never fit) |
+|---|---|---|---|
+| max | R²=+0.170, ρ=+0.574 (p=0.032) | 6 | **Pearson r=-0.087 (p=0.913), R²=-3.623** |
+| mean | R²=-0.964, ρ=-0.780 (p=0.001) | **0** (regularization zeroed everything) | undefined (constant prediction), R²=-0.274 |
+
+Max-pool's training-set result looks significant on a superficial read
+(p=0.032) — classic p≫n overfitting with 16,384 candidate predictors for
+14 points, and the held-out test catches it: R²=-3.623 is worse than
+predicting the same constant for every confirm binder. Mean-pool's own
+internal cross-validation correctly declined to fit anything at all,
+rather than grabbing onto noise the way max-pool did — arguably the more
+trustworthy of the two outcomes precisely because it didn't overfit. The
+6 features max-pool selected don't tell a coherent story either (cysteine,
+a Y/H-before-PE motif, a very common 21%-density generic hydrophobic
+feature, the Bcl-2-fold feature again, asparagine, methionine-in-alanine
+context) — a grab-bag, consistent with fitting noise.
+
+**Conclusion**: this doesn't refute the "diverse mechanisms" hypothesis
+biologically — it's still plausible. It means 14/4 real data points isn't
+enough to detect it, even with a method specifically designed for that
+structure. The bottleneck is real-data quantity, not the analysis
+approach.
+
 ## 3. What this means for generating better binders — the coherent, useful part
 
 Even without a validated single "binding feature," there's a real,
