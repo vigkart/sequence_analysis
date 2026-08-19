@@ -207,6 +207,62 @@ biologically — still plausible — but 14/4 real data points isn't enough
 to detect it, even with a method built for exactly that structure. The
 bottleneck is real-data quantity, not analysis approach.
 
+### Redone with interface-restricted pooling — same null result, one nominally-interesting but unvalidated Lasso lead
+
+Repeated both tests above with max/mean pooling computed only over each
+binder's own closest-quartile-to-target residues (`interface_utils.py`),
+the same narrowing that surfaced feature 10685 in §7 — testing whether
+the whole-sequence pooling above was diluting a real, localized signal.
+
+**Coverage caveat**: only 14/14 screen binders plus 1/4 confirm binders
+(`p144`) have a verified predicted structure anywhere in this repo —
+`p130`, `p154_prev`, and `b44` do not (searched exhaustively, exact and
+fuzzy, across every candidate structure file for their `design_spec_N`,
+in `Final_designs/`, its `binder_design_analysis/` copy, and
+`misc/Binder_Designs_initial/`; no match). The screen half runs at full
+strength (all 14); the confirm step is reduced to a single sanity-check
+point (`p144`) rather than a real 4-point generalization test.
+
+**Univariate screen** (`correlate_features_with_binding_interface.py`):
+6,282/16,384 features fire at least once within the narrow interface
+window across the 14 (the rest are fully degenerate and excluded). 407
+hit "perfect" locked screen concordance — checked against a 200-shuffle
+permutation null (`permutation_check_interface_screen.py`) rather than
+taken at face value:
+
+| Pooling | Evaluable features | Hit "perfect" | Chance (permutation mean) | Ratio | Empirical p |
+|---|---|---|---|---|---|
+| max | 6,282 | 407 | 435.2 | 0.94x | 0.70 |
+| mean | 6,282 | 405 | 436.2 | 0.93x | 0.77 |
+
+Not enriched — if anything slightly *below* chance. 0/16,384 features
+reach BH-corrected significance on the pooled 15-point (14+`p144`)
+correlation either. **Same clean null as the whole-sequence version.**
+
+**Lasso probe** (`lasso_probe_binding_interface.py`):
+
+| Pooling | Nested LOO-CV on the 14 | Nonzero features | p144 single-point check |
+|---|---|---|---|
+| max | R²=+0.254, ρ=+0.636 (p=0.015) | 9 | predicted 0.129 vs. true 0.134 |
+| mean | R²=-0.035, ρ=+0.337 (p=0.239) | 8 | predicted 0.006 vs. true 0.134 (miss) |
+
+Max-pool's training fit is nominally *stronger* than the whole-sequence
+version's (R²=+0.170, p=0.032), and its one available held-out point
+landed close to true. **This is not a validation** — n=1 supports no
+correlation or significance test, and the whole-sequence version's own
+similarly promising training result (p=0.032) collapsed completely on
+its real 4-point held-out set (R²=-3.623). With only 1 held-out point
+here instead of 4, this version's generalization claim is *structurally
+weaker* than the already-inconclusive whole-sequence one, not stronger,
+despite the better-looking headline number. Flagged as a mild curiosity,
+not evidence.
+
+**Bottom line**: interface-restriction changes the qualitative feature
+search's results (§7) but not these dictionary-wide statistical tests —
+both come back null again, now under a narrower, more targeted search
+that should have made a real localized signal easier to find if one
+existed at this sample size.
+
 ---
 
 ## 7. Qualitative deep-dive: what's distinctive about our actual strongest binders
