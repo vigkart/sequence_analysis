@@ -143,6 +143,14 @@ def main() -> None:
     parser.add_argument("--poll-seconds", type=int, default=20, help="Delay between polling passes over pending jobs.")
     parser.add_argument("--submit-delay-seconds", type=float, default=3.0)
     parser.add_argument("--submit-chunk", type=int, default=25, help="Submit this many, then do one polling pass over everything pending, before continuing to submit -- interleaves submission and results instead of submit-everything-then-wait.")
+    parser.add_argument(
+        "--max-polls-per-job", type=int, default=60,
+        help="Give up waiting on any single job after this many polling passes it's been "
+        "seen pending in (not total script polls -- a job submitted late in a long run "
+        "still gets its own full budget). Prevents one hung EBI job from blocking the "
+        "whole run forever -- the original igemmodel script had this; this rewrite's "
+        "first version dropped it by accident when streaming/resume support was added.",
+    )
     args = parser.parse_args()
 
     examples = pd.read_csv(args.examples_csv)
@@ -191,9 +199,12 @@ def main() -> None:
         writer.writeheader()
         out_f.flush()
 
+    poll_counts: dict[int, int] = {}
+
     def poll_pending_once() -> int:
         """One status-check pass over everything pending. Streams out any
-        that finished. Returns count newly resolved (FINISHED or failed)."""
+        that finished. Returns count newly resolved (FINISHED, failed, or
+        given up on after --max-polls-per-job)."""
         resolved = 0
         for row_index, job_id in list(pending.items()):
             status = check_status(job_id)
@@ -206,12 +217,23 @@ def main() -> None:
                 write_result_rows(writer, examples_by_row, row_index, matches)
                 out_f.flush()
                 del pending[row_index]
+                poll_counts.pop(row_index, None)
                 resolved += 1
             elif status in ("ERROR", "FAILURE", "NOT_FOUND"):
                 write_result_rows(writer, examples_by_row, row_index, None)
                 out_f.flush()
                 del pending[row_index]
+                poll_counts.pop(row_index, None)
                 resolved += 1
+            else:
+                poll_counts[row_index] = poll_counts.get(row_index, 0) + 1
+                if poll_counts[row_index] >= args.max_polls_per_job:
+                    print(f"  giving up on row {row_index} ({job_id}) after {poll_counts[row_index]} polls, still {status}", flush=True)
+                    write_result_rows(writer, examples_by_row, row_index, None)
+                    out_f.flush()
+                    del pending[row_index]
+                    poll_counts.pop(row_index, None)
+                    resolved += 1
         return resolved
 
     start_time = time.time()
