@@ -339,6 +339,28 @@ both whole-design and, where structures exist, interface-region only):
   of each binder's own distance-to-target distribution (7.6 Å and 7.1 Å)
   — notably closer than any earlier candidate in this write-up.
 
+**LLM labels**: feature 10685 — "Cysteine (C) identity at the activating
+position, consistently appearing in a hydrophobic local context with
+aliphatic residues (V, I, L, A) in surrounding positions." Feature 372 —
+"Leucine (L) residues immediately following an acidic/basic-rich motif
+(RAV[RKA][RA]) with a conserved G-V-D pattern in the following
+positions."
+
+**InterPro**: neither feature was in the curated 95-feature candidate set
+(built from each feature's single highest-activating examples pool-wide,
+not from this later interface-restricted search), so there was no
+existing annotation. Submitting `new157` and `new089`'s full sequences
+directly to InterProScan5 (`interpro_check_motif_candidate.py`) found
+both hit the **same generic Bcl-2-like apoptosis-regulator superfamily
+fold** (IPR036834 / IPR002475 / IPR026298) spanning almost the *entire*
+protein in both (residues 7–128/140 and 6–147/147) — the identical
+generic fold that dominates 94% of all InterPro hits across this whole
+corpus (§1 above). The motif position falls inside this hit only because
+the hit covers nearly the whole sequence — not distinguishing evidence
+either way. **Net effect: InterPro neither strengthens nor undercuts
+this candidate; the case rests entirely on the rare exact-substring match
+and the interface-proximity result above.**
+
 **Necessary statistical caveat, applying the same rigor as everywhere
 else in this document**: the SAE *feature* 10685 itself (as opposed to
 the literal 8-mer) fires somewhere in an estimated ~9% of the 80k pool
