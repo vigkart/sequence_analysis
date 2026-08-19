@@ -301,6 +301,67 @@ not a strong lead either. **Net effect: this test did what it was
 supposed to do — it downgrades rather than confirms this lead. Not
 recommended as a design target without further, stronger evidence.**
 
+### Narrowing the search to the interface itself — a better candidate emerges
+
+The §7 search above ranked each strong binder's distinctive features over
+its *whole* sequence, which — per the structural check just above — is
+dominated by generic scaffold signal that swamps anything actually near
+the interface. Repeating the same "surprise" ranking (rarity × intensity),
+but restricted to each binder's own **closest quartile of residues to the
+target** (by CA–CA distance, from the same predicted structures, ~35
+residues out of ~140 per design), for all 4 strongest real binders (top 3
+of the 14-experiment — `new157`, `new089`, `new241` — plus the top 1 of
+the 4-experiment, `p144`), narrows the top-20-per-binder search space from
+~140 to ~35 residues each. `phase2_feature_extraction/sae/interface_restricted_feature_search.py`.
+
+**Result**: only two feature/binder-pair overlaps survive being silent on
+all 5 weak binders (`new249`, `new211`, `new226`, `new163`, `b44`, checked
+both whole-design and, where structures exist, interface-region only):
+
+- **Feature 372**, shared `new157` & `new241` (same pair as §7's original
+  finding, but a different feature) — sequence match at the raw-string
+  level is weak (~27% aligned identity around the activating residue,
+  roughly what generic composition bias would produce). Not compelling.
+- **Feature 10685**, shared `new157` & `new089` — a pair **not** flagged
+  by the whole-binder search in §7 at all. Their activating windows:
+  ```
+  new157: ERVLADGVDWGRVLA[C]FVLAYAAGKVLKEKG
+  new089: SRVLADGVDLGRIIA[C]LGLGAYLCSLLIDQG
+  ```
+  Both share a literal, **exact 8-residue substring "RVLADGVD"**,
+  confirmed by direct string search (not just SAE feature similarity) —
+  and it does **not** appear anywhere in `new241`, `p144`, or any of the
+  4 structurally-checked weak binders. Scanning the full 80,000-design
+  pool for this exact substring: it appears in only **89/80,000 (0.11%)**
+  designs — an uncommon, specific fragment, not a generic scaffold
+  cliché like the "ATG"/"NGGIE" motifs above. Structurally, both
+  occurrences sit close to the interface: **14th and 11th percentile**
+  of each binder's own distance-to-target distribution (7.6 Å and 7.1 Å)
+  — notably closer than any earlier candidate in this write-up.
+
+**Necessary statistical caveat, applying the same rigor as everywhere
+else in this document**: the SAE *feature* 10685 itself (as opposed to
+the literal 8-mer) fires somewhere in an estimated ~9% of the 80k pool
+(extrapolated from its per-token density), because it also activates on
+other, unrelated cysteine-in-hydrophobic-context positions elsewhere in
+the corpus. At that base rate, the probability all 5 tested weak binders
+would show zero activation **purely by chance** is ≈62% — not a rare
+event. So "silent on the weak binders we happened to test" is **not**
+independent statistical evidence here; the actual signal, if any, is the
+rare literal-motif match itself, not the discrimination test used to
+surface it.
+
+**Status**: the single most concrete, novel, testable lead from the
+whole SAE pipeline — a specific, uncommon (89/80,000) sequence motif
+shared by 2 of the 3 top binders from the 14-experiment, sitting near
+the predicted interface in both — but **not validated**, and not
+expected to be validatable from the existing 18-binder dataset (n=2
+positive occurrences is too small for any statistical test). The
+concrete next step this points to: of the 87 other pool designs sharing
+this exact motif that were never wet-lab tested, testing even a handful
+would directly ask whether this motif associates with binding — a real,
+informative experiment this analysis alone cannot answer.
+
 ---
 
 ## 8. Current status
@@ -313,6 +374,9 @@ recommended as a design target without further, stronger evidence.**
 - ✅ Lasso multivariate probe (null result)
 - ✅ Structural check of the shared new157/new241 motif — resolved, mostly
   against the binding-relevant hypothesis (see §7)
+- ✅ Interface-restricted feature search — found a new, more concrete
+  candidate motif (feature 10685, new157/new089, 89/80k pool prevalence),
+  flagged as an untested hypothesis for a future wet-lab round (see §7)
 - ⬜ Layers 7/8 SAE training (not started)
 - ⬜ Cross-referencing interpretable features against the PC7 direction
   (blocked on the PC7 direction question — see `docs/pc7_sign_reversal_findings.md`)
