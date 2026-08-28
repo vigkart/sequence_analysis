@@ -2,9 +2,9 @@
 
 Interpretability analysis of ESMC-600M applied to 80,000 AI-designed protein
 binders, searching for where (and whether) the model encodes binding-relevant
-information, validated against real wet-lab activity data. Full narrative and
-findings: [`TODO.md`](TODO.md) (running log) and
-[`PI_presentation_summary.md`](PI_presentation_summary.md) (findings summary).
+information, validated against real wet-lab activity data. Current status,
+findings, and forward plan: [`TODO.md`](TODO.md); slide-ready summary:
+[`PI_presentation_summary.md`](PI_presentation_summary.md).
 
 ## Setup
 
@@ -119,7 +119,7 @@ on an external drive: `/Volumes/Extreme Pro/esmc_residue_embeddings/`.
    against BoltzGen's computational metrics (iptm, ipsae, etc.).
 7. `phase1_layer_selection/validate_layer14.py` — length-deconfounding +
    train/test replication check on the early "layer 14" lead (debunked —
-   see `TODO.md` §"Layer-14 validation").
+   see `TODO.md` §"What was ruled out").
 8. `phase1_layer_selection/utilities/embed_binder3_4.py` — embeds the one
    real binder not present in the 80k set.
 9. `phase1_layer_selection/utilities/project_real_binders.py` /

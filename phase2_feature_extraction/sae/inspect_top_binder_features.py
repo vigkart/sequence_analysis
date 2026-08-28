@@ -60,7 +60,7 @@ def main() -> None:
     model.load_state_dict(ckpt["model_state_dict"])
     model.eval()
     mean, scale = ckpt["mean"].to(device), ckpt["scale"]
-
+n y
     index_df = pd.read_csv(EMBED_DIR / "index.csv")
     index_by_row = {r.row_index: r for r in index_df.itertuples()}
     acts_file = np.load(EMBED_DIR / "activations.npy", mmap_mode="r")
